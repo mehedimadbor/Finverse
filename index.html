@@ -5363,6 +5363,7 @@ function renderReport(){
   const of = ty => sum(list.filter(x=>x.type===ty));
   const income = of('deposit'), loanTaken = of('loan_taken'), loanGiven = of('loan_given');
   const repaid = of('loan_repay_taken'), received = of('loan_repay_given'), saved = of('save_to_account');
+  const savedUsed = of('use_from_account') + sum(list.filter(x=>x.fund && TYPE_META[x.type] && TYPE_META[x.type].sign<0 && x.type!=='save_to_account'));
   const expList = list.filter(isExpenseLike);
   const expense = sum(expList);
   const net = income - expense;
@@ -5389,7 +5390,7 @@ function renderReport(){
       <div class="scard"><div class="l">${t('rep_repaid')}</div><div class="v">${fmt(repaid)}</div></div>
       <div class="scard"><div class="l">${t('rep_received')}</div><div class="v">${fmt(received)}</div></div>
       <div class="scard"><div class="l">${t('rep_net')}</div><div class="v" style="color:${net<0?'var(--red)':'#16a34a'};">${net<0?'−':''}${fmt(Math.abs(net))}</div></div>
-      <div class="scard"><div class="l">${t('rep_saved')}</div><div class="v">${fmt(saved)}</div></div>
+      <div class="scard"><div class="l">${month?(B?'এই মাসে একাউন্টে জমা':'Saved to accounts this month'):(B?'এই সময়ে একাউন্টে জমা':'Saved to accounts in this period')}</div><div class="v">${fmt(saved)}</div>${savedUsed>0?`<div class="l" style="font-size:11px;margin-top:3px;">${B?'তোলা/ব্যবহার':'Used'}: ${fmt(savedUsed)} · ${B?'নিট':'Net'}: ${saved-savedUsed<0?'−':''}${fmt(Math.abs(saved-savedUsed))}</div>`:''}</div>
     </div></div>`;
 
   const deps = list.filter(x=>x.type==='deposit');
