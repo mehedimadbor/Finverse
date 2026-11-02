@@ -589,6 +589,8 @@ h1 [data-i18n="app_title"]{background:var(--grad); -webkit-background-clip:text;
 .hc .hcEye{width:28px; height:28px; flex:none;}
 .hc .hcVal{font-size:clamp(17px,5.2vw,22px); letter-spacing:-.4px; margin-top:10px; line-height:1.2;}
 .hc .hcSub{font-size:11px; line-height:1.3;}
+.hcPrev{display:inline-flex; align-items:center; gap:5px; padding:3px 8px 3px 6px; border-radius:999px; background:rgba(255,255,255,.16); font-size:10.5px; font-weight:600; line-height:1.2; white-space:nowrap; max-width:100%;}
+.hcPrev svg{width:11px; height:11px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; opacity:.9;}
 .heroTrack[data-n="1"] .hc .hcVal{font-size:31px;}
 
 /* Sticky tabs */
@@ -2391,7 +2393,7 @@ var FT_FIREBASE = { apiKey: 'AIzaSyDRzfG4StEnCRy6ote3fuNrlu6_LPexWXY', dbUrl: 'h
       <div class="hcSub" id="balSub"></div>
     </div>
     <div class="hc hc-exp">
-      <div class="hcTop"><span class="hcIcon"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></span><span class="hcLbl" data-i18n="lbl_total_expense">মোট খরচ</span>
+      <div class="hcTop"><span class="hcIcon"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></svg></span><span class="hcLbl" data-i18n="lbl_total_expense">এই মাসের খরচ</span>
         <button class="hcEye" onclick="toggleHide(event)" aria-label="hide/show"><svg class="eyeOn" viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eyeOff" viewBox="0 0 24 24"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-7 0-11-7-11-7a19.8 19.8 0 0 1 5.1-5.9M9.9 5.2A10.7 10.7 0 0 1 12 5c7 0 11 7 11 7a19.9 19.9 0 0 1-3.2 4.2M1 1l22 22"/></svg></button>
       </div>
       <div class="hcVal" id="expVal">৳0</div>
@@ -3441,7 +3443,7 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
 <script>
 const I18N = {
   bn:{
-    app_title:'Finverse', lbl_total_balance:'মোট ব্যালেন্স', lbl_total_expense:'মোট খরচ',
+    app_title:'Finverse', lbl_total_balance:'মোট ব্যালেন্স', lbl_total_expense:'এই মাসের খরচ',
     tab_dash:'ড্যাশবোর্ড', tab_add:'যোগ করুন', tab_acc:'একাউন্ট', tab_loan:'লোন', tab_hist:'হিস্ট্রি', tab_settings:'সেটিংস',
     dash_cat_heading:'খাত অনুযায়ী খরচ', dash_recent_heading:'সাম্প্রতিক লেনদেন',
     empty_no_expense:'এখনো কোনো খরচ নেই', empty_no_tx:'কোনো লেনদেন নেই', empty_no_account:'কোনো একাউন্ট নেই', empty_no_one:'কেউ নেই',
@@ -3567,7 +3569,7 @@ const I18N = {
     chat_fallback:'দুঃখিত, এটা বুঝতে পারিনি। "ব্যালেন্স", "খরচ", "লোন", "খাত", "হিস্ট্রি" জিজ্ঞাসা করুন, অথবা সরাসরি লিখুন — যেমন "৫০০ টাকা জমা হলো" বা "রহিমের কাছ থেকে ২০০ টাকা ধার নিলাম"।'
   },
   en:{
-    app_title:'Finverse', lbl_total_balance:'Total Balance', lbl_total_expense:'Total Expense',
+    app_title:'Finverse', lbl_total_balance:'Total Balance', lbl_total_expense:'This Month\'s Expense',
     tab_dash:'Dashboard', tab_add:'Add', tab_acc:'Accounts', tab_loan:'Loan', tab_hist:'History', tab_settings:'Settings',
     dash_cat_heading:'Expense by Category', dash_recent_heading:'Recent Transactions',
     empty_no_expense:'No expenses yet', empty_no_tx:'No transactions', empty_no_account:'No accounts', empty_no_one:'No one',
@@ -6369,7 +6371,10 @@ if(devUnlocked){
     const bn=bnLang(), cur=monthSums(monthKey(0)), prev=monthSums(monthKey(-1));
     // hero subs
     setT('balSub',(bn?'এই মাসে আয়: ':'Income this month: ')+fmt(cur.inc));
-    setT('expSub',(bn?'এই মাসে: ':'This month: ')+fmt(cur.exp));
+    // expense card: big number = running month, small line = previous month
+    setT('expVal',fmt(cur.exp));
+    { const es=document.getElementById('expSub');
+      if(es) es.innerHTML='<span class="hcPrev"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>'+(bn?'গত মাস: ':'Last month: ')+fmt(prev.exp)+'</span>'; }
     const {getMap,oweMap}=calcLoans();
     const owe=Object.values(oweMap).reduce((s,v)=>s+Math.max(v,0),0);
     const get=Object.values(getMap).reduce((s,v)=>s+Math.max(v,0),0);
@@ -7813,7 +7818,7 @@ $('devDash').appendChild(tog2('সাপ্তাহিক তুলনা ক�
 NAV.forEach(n=>$('devNav').appendChild(tog2(n[1],n[2],swKey(n[0]),'1',applyDash)));
 
 /* ---------- Home swipe cards: each card can be switched on/off ---------- */
-const HERO=[['bal','মোট ব্যালেন্স','Total balance','.hc-bal'],['exp','মোট খরচ','Total expense','.hc-exp'],['loan','মোট লোন','Total loan','.hc-loan'],['save','মোট সঞ্চয়','Total savings','.hc-save']];
+const HERO=[['bal','মোট ব্যালেন্স','Total balance','.hc-bal'],['exp','এই মাসের খরচ',"This month's expense",'.hc-exp'],['loan','মোট লোন','Total loan','.hc-loan'],['save','মোট সঞ্চয়','Total savings','.hc-save']];
 const heroEl=$('hero'), heroTr=$('heroTrack'), heroDt=$('heroDots');
 const visCards=()=>[...heroTr.children].filter(x=>x.style.display!=='none');
 const hstep=()=>{ const c=visCards()[0]; return c?(c.offsetWidth+10)*Math.min(2,visCards().length):1; };
@@ -8256,7 +8261,7 @@ if(!sec) return;
 const lsg=(k,d)=>{ try{ const v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } };
 const lss=(k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
 const SEC=[['quick','দ্রুত অ্যাকশন বাটন','Quick action buttons'],['month','এই মাসের সারসংক্ষেপ','This month at a glance'],['insight','স্মার্ট ইনসাইট','Smart insights'],['today','আজকের হিসাব','Today summary'],['remind','লোনের রিমাইন্ডার','Loan reminders'],['rm','রিমাইন্ডার','Reminders'],['cat','খাত অনুযায়ী খরচ','Spending by category'],['src','আয়ের উৎস অনুযায়ী জমা','Income by source'],['budget','মাসিক বাজেট','Monthly budget'],['goal','সঞ্চয় লক্ষ্য','Savings goal'],['sp','সঞ্চয় পরিকল্পনা','Savings planner'],['week','সাপ্তাহিক তুলনা','Weekly comparison'],['trend','শেষ ৬ মাসের চার্ট','Last 6 months chart'],['recent','সাম্প্রতিক লেনদেন','Recent transactions']];
-const HER=[['bal','মোট ব্যালেন্স','Total balance','.hc-bal'],['exp','মোট খরচ','Total expense','.hc-exp'],['loan','মোট লোন','Total loan','.hc-loan'],['save','মোট সঞ্চয়','Total savings','.hc-save']];
+const HER=[['bal','মোট ব্যালেন্স','Total balance','.hc-bal'],['exp','এই মাসের খরচ',"This month's expense",'.hc-exp'],['loan','মোট লোন','Total loan','.hc-loan'],['save','মোট সঞ্চয়','Total savings','.hc-save']];
 const secKey=el=>el.getAttribute('data-ftd')||(el.id==='weekBox'?'week':null);
 const herKey=el=>{ const h=HER.find(x=>el.matches(x[3])); return h?h[0]:null; };
 const G={
