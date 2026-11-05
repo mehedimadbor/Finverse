@@ -12123,7 +12123,7 @@ const TABS=[
  ['money','অর্থ ও লক্ষ্য','Money & goals',[['loan','লোন','Loans','bank','#ef4444'],['challenge','চ্যালেঞ্জ','Challenges','svg:cg-trophy','#f59e0b'],['zakat','যাকাত','Zakat','coin','#22c55e']]],
  ['insight','ইনসাইট','Insights',[['report','রিপোর্ট','Reports','bars','#6366f1'],['chat','AI চ্যাট','AI Chat','bot','#8b5cf6']]],
  ['social','কমিউনিটি ও যোগাযোগ','Community & contact',[['friends','বন্ধু','Friends','user','#0ea5e9'],['@inbox','মেসেজ','Messages','message','#10b981'],['profile','প্রোফাইল','Profile','user','#ec4899'],['@search','ইউজার খুঁজুন','Find users','search','#0ea5e9'],['@blood','ইমারজেন্সি হেল্প','Emergency help','drop','#e11d48'],['@homies','হোমি খুঁজুন','Find Homies','svg:hm-users','#f97316']]],
- ['tools','টুলস','Tools',[['@tour','ট্যুর বাজেট','Tour budget','bus','#f59e0b'],['notes','নোট ও টাস্ক','Notes & tasks','clipboard','#a78bfa'],['@planner','ক্যালেন্ডার','Calendar','svg:cg-cal','#14b8a6']]]
+ ['tools','টুলস','Tools',[['@tour','ট্যুর বাজেট','Tour budget','bus','#f59e0b'],['notes','নোট ও টাস্ক','Notes & tasks','clipboard','#a78bfa'],['@planner','ক্যালেন্ডার','Calendar','svg:cg-cal','#14b8a6'],['@wishare','ওয়াইশেয়ার','WiShare','svg:ws-wifi','#2f6bff']]]
 ];
 const icon=n=>n.indexOf('svg:')===0?'<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#'+n.slice(4)+'"/></svg>':'<i class="mi" style="--m:var(--ic-'+n+')"></i>';
 const cur=()=>{ const s=document.querySelector('.section.active'); return s?s.id.replace('sec-',''):''; };
@@ -12135,9 +12135,9 @@ function scSet(a){ try{ localStorage.setItem(SCK,JSON.stringify(a)); }catch(e){}
 function scItems(){
   const out=[], seen={}, add=o=>{ if(!seen[o.id]){ seen[o.id]=1; out.push(o); } };
   TABS.forEach(g=>g[3].forEach(x=>{
-    const k=x[0], ok=k==='@search'?!!window.ppGoSearch:k==='@blood'?!!window.ftBlood:k==='@inbox'?!!window.ftOpenInbox:k==='@tour'?!!window.ftTour:k==='@planner'?!!window.ftPlannerOpen:k==='@homies'?!!window.ftHomies:(!!$('sec-'+k)||k==='tx');
+    const k=x[0], ok=k==='@search'?!!window.ppGoSearch:k==='@blood'?!!window.ftBlood:k==='@inbox'?!!window.ftOpenInbox:k==='@tour'?!!window.ftTour:k==='@planner'?!!window.ftPlannerOpen:k==='@homies'?!!window.ftHomies:k==='@wishare'?!!window.ftWishare:(!!$('sec-'+k)||k==='tx');
     if(!ok) return;
-    const a=k==='@search'?'search':k==='@blood'?'blood':k==='@inbox'?'inbox':k==='@tour'?'tour':k==='@planner'?'planner':k==='@homies'?'homies':'tab';
+    const a=k==='@search'?'search':k==='@blood'?'blood':k==='@inbox'?'inbox':k==='@tour'?'tour':k==='@planner'?'planner':k==='@homies'?'homies':k==='@wishare'?'wishare':'tab';
     add({id:'f:'+k,g:'f',a:a,k:k,c:x[4],ic:icon(x[3]),lb:L(x[1],x[2])});
   }));
   [['expense','খরচ যোগ করুন','Add expense','arrow-out','#ef4444',()=>!!window.quickAdd],['deposit','জমা যোগ করুন','Add income','arrow-in','#22c55e',()=>!!window.quickAdd],['calc','ক্যালকুলেটর','Calculator','sheet','#f59e0b',()=>!!window.calcOpen]].forEach(x=>{
@@ -12187,7 +12187,7 @@ function fillMenu(){
   const mv=dets().filter(isMoved).map(d=>{ const ch=chipOf(d), k=kOf(d); return R('mset',k,ch.c,ch.i,titleHtml(d),det&&det===k); });
   TABS.forEach(g=>{
     if(g[0]==='everyday') return;
-    const rows=g[3].filter(x=>x[0]==='@search'?!!window.ppGoSearch:x[0]==='@blood'?!!window.ftBlood:x[0]==='@inbox'?!!window.ftOpenInbox:x[0]==='@tour'?!!window.ftTour:x[0]==='@planner'?!!window.ftPlannerOpen:x[0]==='@homies'?!!window.ftHomies:(!!$('sec-'+x[0])||x[0]==='tx')).map(x=>R(x[0]==='@search'?'search':x[0]==='@blood'?'blood':x[0]==='@inbox'?'inbox':x[0]==='@tour'?'tour':x[0]==='@planner'?'planner':x[0]==='@homies'?'homies':'tab',x[0],x[4],icon(x[3]),L(x[1],x[2]),x[0]===c&&c!=='settings'));
+    const rows=g[3].filter(x=>x[0]==='@search'?!!window.ppGoSearch:x[0]==='@blood'?!!window.ftBlood:x[0]==='@inbox'?!!window.ftOpenInbox:x[0]==='@tour'?!!window.ftTour:x[0]==='@planner'?!!window.ftPlannerOpen:x[0]==='@homies'?!!window.ftHomies:x[0]==='@wishare'?!!window.ftWishare:(!!$('sec-'+x[0])||x[0]==='tx')).map(x=>R(x[0]==='@search'?'search':x[0]==='@blood'?'blood':x[0]==='@inbox'?'inbox':x[0]==='@tour'?'tour':x[0]==='@planner'?'planner':x[0]==='@homies'?'homies':x[0]==='@wishare'?'wishare':'tab',x[0],x[4],icon(x[3]),L(x[1],x[2]),x[0]===c&&c!=='settings'));
     h+=sect(L(g[1],g[2]),g[0]==='money'?rows.concat(mv):rows);
   });
   h+='<div class="mnCard" style="margin-top:16px">'+R('tab','settings','#64748b',icon('settings'),L('সেটিংস','Settings'),c==='settings'&&!det)+'</div>';
@@ -12215,6 +12215,7 @@ function onMenu(e){
     else if(a==='tour'&&window.ftTour) window.ftTour.open();
     else if(a==='planner'&&window.ftPlannerOpen) window.ftPlannerOpen();
     else if(a==='homies'&&window.ftHomies) window.ftHomies.open();
+    else if(a==='wishare'&&window.ftWishare) window.ftWishare.open();
  else if(a==='fn'){ if(k==='expense'&&window.quickAdd) quickAdd('expense'); else if(k==='deposit'&&window.quickAdd) quickAdd('deposit'); else if(k==='calc'&&window.calcOpen) calcOpen(); }
     else if(a==='about'&&window.ftAbout) window.ftAbout();
     else if(a==='install'&&window.ftInstall) window.ftInstall.open();
@@ -19660,5 +19661,237 @@ hookChat();
 }
 @keyframes mvMnIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 </style>
+<style id="wsCss">
+#wsPage{position:fixed;inset:0;z-index:99990;background:var(--bg);color:var(--text);display:none;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+#wsPage.on{display:flex;animation:hmIn .22s ease}
+#wsPage *{box-sizing:border-box}#wsPage button{font:inherit}
+.wsHd{flex:none;padding:14px 16px 12px;color:#fff;background:var(--grad);border-radius:0 0 26px 26px;box-shadow:0 14px 30px -18px var(--primary)}
+.wsRow{display:flex;align-items:center;gap:10px}
+.wsBack{width:40px;height:40px;border-radius:14px;border:0;background:rgba(255,255,255,.24);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55);cursor:pointer}
+#wsPage svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wsT b{display:block;font-size:19px;font-weight:900}.wsT small{opacity:.92;font-size:12px}
+.wsTabs{display:flex;gap:6px;margin-top:12px;padding:4px;border-radius:16px;background:rgba(255,255,255,.18)}
+.wsTabs button{flex:1;border:0;background:transparent;color:#fff;border-radius:12px;padding:9px 4px;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.wsTabs button.on{background:#fff;color:var(--primary)}
+.wsTabs em{font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;display:none;align-items:center;justify-content:center}
+.wsBody{flex:1;overflow-y:auto;padding:14px 14px 100px;-webkit-overflow-scrolling:touch}
+.wsCard{border:1px solid var(--border);background:var(--card);border-radius:20px;padding:14px;margin-bottom:12px;box-shadow:0 6px 18px -12px rgba(0,0,0,.35)}
+.wsCard h3{margin:0 0 4px;font-size:15px;font-weight:900}.wsMu{color:var(--muted);font-size:12.5px}
+.wsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.wsSt{border:1px solid var(--border);background:var(--card);border-radius:18px;padding:13px}
+.wsSi{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:8px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+.wsSv{font-size:25px;font-weight:900;line-height:1.1}
+.wsIt{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)}.wsIt:first-child{border-top:0}
+.wsIc{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;color:var(--primary);background:color-mix(in srgb,var(--primary) 14%,transparent);flex:none}
+.wsIc.pv{color:#d97706;background:color-mix(in srgb,#d97706 16%,transparent)}
+.wsMeta{flex:1;min-width:0}.wsNm{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wsGo{border:0;border-radius:13px;width:42px;height:42px;display:grid;place-items:center;background:var(--green);color:#fff;cursor:pointer;flex:none}
+.wsBt{border:0;border-radius:14px;background:var(--grad);color:#fff;font-weight:800;font-size:14.5px;padding:13px 16px;display:flex;gap:8px;align-items:center;justify-content:center;width:100%;cursor:pointer}
+.wsBt.g{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.wsSm{border:0;border-radius:11px;font-weight:800;font-size:12.5px;padding:8px 12px;display:inline-flex;gap:5px;align-items:center;cursor:pointer;background:var(--primary);color:#fff}
+.wsSm.ok{background:var(--green)}.wsSm.no{background:var(--card);color:var(--red);border:1px solid var(--border)}
+.wsPill{font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:99px;color:#d97706;background:color-mix(in srgb,#d97706 16%,transparent)}
+.wsLb{display:block;font-size:11.5px;font-weight:800;color:var(--muted);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.wsIn{width:100%;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:13px;padding:12px 14px;font:inherit;outline:none}
+.wsIn:focus{border-color:var(--primary)}
+.wsSeg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wsSeg button{border:1.5px solid var(--border);background:var(--bg);color:var(--text);border-radius:14px;padding:11px;text-align:left;font-weight:800;font-size:13.5px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.wsSeg small{font-weight:500;font-size:11.5px;color:var(--muted)}
+.wsSeg button.on{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 10%,transparent)}
+.wsBar{height:6px;border-radius:9px;background:var(--bg);margin-top:5px;overflow:hidden}.wsBar i{display:block;height:100%;background:var(--grad)}
+.wsEm{text-align:center;color:var(--muted);padding:16px 6px;font-size:13px}
+.wsShW{position:absolute;inset:0;background:rgba(8,12,24,.55);display:none;align-items:flex-end;justify-content:center}
+.wsShW.on{display:flex}
+.wsSh{background:var(--card);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom,0px));text-align:center}
+#wsQr{background:#fff;padding:12px;border-radius:16px;display:inline-block;margin:12px 0}
+.wsPw{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:13px;padding:10px 12px;margin:0 0 12px;text-align:left}
+.wsPw code{flex:1;word-break:break-all;font-size:15px}
+.wsIb{border:0;background:none;color:var(--muted);padding:8px;cursor:pointer}
+.wsLc{position:absolute;inset:0;z-index:6;background:rgba(8,12,24,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:24px}
+.wsLc.on{display:flex}
+.wsLcC{position:relative;width:100%;max-width:300px;background:var(--card);color:var(--text);border-radius:24px;padding:0 20px 18px;text-align:center;box-shadow:0 24px 50px -16px color-mix(in srgb,var(--primary) 60%,transparent),0 0 0 1px var(--border);overflow:hidden;animation:wsLcIn .28s cubic-bezier(.2,.9,.3,1.2) both}
+@keyframes wsLcIn{from{opacity:0;transform:translateY(14px) scale(.94)}}
+.wsLcC::before{content:"";display:block;height:62px;margin:0 -20px;background:var(--grad)}
+.wsLcIc{position:relative;z-index:1;width:56px;height:56px;margin:-30px auto 10px;border-radius:50%;background:var(--card);color:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -6px color-mix(in srgb,var(--primary) 50%,transparent),0 0 0 4px var(--card)}
+#wsPage .wsLcIc svg{width:28px;height:28px}
+.wsLcC h4{margin:0 0 6px;font-size:16.5px;font-weight:800;color:var(--primary);line-height:1.5}
+.wsLcC p{margin:0 0 12px;font-size:13px;line-height:1.7;color:var(--muted)}
+.wsLcH{margin:0 0 12px;font-size:12.5px;font-weight:700;color:var(--red);line-height:1.55}.wsLcH:empty{display:none}
+.wsLcGo{width:100%;height:44px;border:0;border-radius:14px;background:var(--grad);color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;box-shadow:0 10px 20px -10px var(--primary)}
+.wsLcGo:active{transform:scale(.97)}
+.wsLcBk{width:100%;height:40px;margin-top:6px;border:0;border-radius:12px;background:color-mix(in srgb,var(--primary) 10%,transparent);color:var(--primary);font-size:13px;font-weight:700;cursor:pointer}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ws-wifi" viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a14 14 0 0 1 20 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="19.5" r="1.2" fill="currentColor"/></symbol></svg>
+<script id="wsJs">
+(function(){'use strict';
+var LS=localStorage,J={'Content-Type':'application/json'},$=function(i){return document.getElementById(i)};
+var bn=function(){return document.documentElement.lang!=='en'},tx=function(b,e){return bn()?b:e};
+var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var R=function(){try{return window.ftCloud&&ftCloud._raw?ftCloud._raw():null}catch(e){return null}};
+var me=function(){var r=R();try{return r&&r.ok()&&r.ses()?r.ses().uid:''}catch(e){return ''}};
+var toast=function(m){try{window.toast&&window.toast(m)}catch(e){}};
+async function db(p,opt,qs){var r=R();if(!r||!r.ok()||!r.ses())throw new Error('LOGIN');var b=String(r.CFG.dbUrl).replace(/\/+$/,''),tk=await r.token();var x=await r.call(b+'/wishare/'+p+'.json?auth='+encodeURIComponent(tk)+(qs?'&'+qs:''),opt);if(!x.ok)throw new Error('HTTP '+x.status);return x.json()}
+var put=function(p,o){return db(p,{method:'PUT',headers:J,body:JSON.stringify(o)})},patch=function(p,o){return db(p,{method:'PATCH',headers:J,body:JSON.stringify(o)})},del=function(p){return db(p,{method:'DELETE'})};
+var ic=function(p){return '<svg viewBox="0 0 24 24">'+p+'</svg>'};
+var I={wifi:ic('<path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a14 14 0 0 1 20 0"/><circle cx="12" cy="19.5" r=".8"/>'),
+lock:ic('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),globe:ic('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+link:ic('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),key:ic('<circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M16 7l3 3"/>'),
+ok:ic('<path d="M5 12l5 5 9-10"/>'),x:ic('<path d="M6 6l12 12M18 6 6 18"/>'),pin:ic('<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>'),
+trash:ic('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>'),users:ic('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>'),
+zap:ic('<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>'),home:ic('<path d="M3 11 12 4l9 7M5 10v10h14V10"/>'),search:ic('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+user:ic('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),copy:ic('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'),back:ic('<path d="M15 5l-7 7 7 7"/>')};
+var idOf=function(s){return Array.from(new TextEncoder().encode(String(s).trim().toLowerCase())).map(function(b){return b.toString(16).padStart(2,'0')}).join('').slice(0,100)};
+var W=[],CNT={},INB=[],SENT={},vis='public',q='',near=null,pos=null,tab='home',err='';
+try{SENT=JSON.parse(LS.getItem('ftWsSent')||'{}')||{}}catch(e){SENT={}}
+var saveSent=function(){try{LS.setItem('ftWsSent',JSON.stringify(SENT))}catch(e){}};
+var isPub=function(w){return (w.vis||'public')==='public'};
+var keyOf=function(w){return w.id+'_'+me()};
+function access(w){if(w.owner===me())return 'own';if(isPub(w))return 'ok';var s=SENT[keyOf(w)];return s?s.s:'none'}
+
+/* crypto: private-network passwords are encrypted for the approved user only */
+var EC={name:'ECDH',namedCurve:'P-256'},AES={name:'AES-GCM',length:256},S=function(){return crypto.subtle};
+var b64=function(u){var s='';new Uint8Array(u).forEach(function(c){s+=String.fromCharCode(c)});return btoa(s)},ub=function(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0)})};
+async function requestAccess(w){
+  try{var kp=await S().generateKey(EC,true,['deriveKey']),k=keyOf(w);
+    LS.setItem('ftWsK:'+k,JSON.stringify(await S().exportKey('jwk',kp.privateKey)));
+    await put('inbox/'+w.owner+'/'+k,{net:w.id,ssid:w.ssid,requester:me(),pub:JSON.stringify(await S().exportKey('jwk',kp.publicKey)),s:'pending',ts:Date.now()});
+    SENT[k]={o:w.owner,id:w.id,s:'pending'};saveSent();toast(tx('মালিকের কাছে অনুরোধ পাঠানো হয়েছে','Request sent to the owner'));render()
+  }catch(e){toast(tx('অনুরোধ পাঠানো যায়নি','Could not send request'))}}
+async function approve(r){
+  try{var sec=await db('secrets/'+me()+'/'+r.net);if(!sec)return toast(tx('এই ডিভাইসে পাসওয়ার্ড পাওয়া যায়নি','Password not found'));
+    var eph=await S().generateKey(EC,true,['deriveKey']),pub=await S().importKey('jwk',JSON.parse(r.pub),EC,false,[]);
+    var key=await S().deriveKey({name:'ECDH',public:pub},eph.privateKey,AES,false,['encrypt']),iv=crypto.getRandomValues(new Uint8Array(12));
+    var ct=await S().encrypt({name:'AES-GCM',iv:iv},key,new TextEncoder().encode(sec.pw||''));
+    await patch('inbox/'+me()+'/'+r.id,{s:'approved',epub:JSON.stringify(await S().exportKey('jwk',eph.publicKey)),iv:b64(iv),ct:b64(ct)});
+    toast(tx('অ্যাক্সেস দেওয়া হয়েছে','Access granted'));await refresh()
+  }catch(e){toast(tx('অনুমোদন করা যায়নি','Could not approve'))}}
+async function decrypt(w){
+  var k=keyOf(w),jw=JSON.parse(LS.getItem('ftWsK:'+k)||'null'),r=await db('inbox/'+w.owner+'/'+k);if(!jw||!r||!r.epub)return null;
+  var priv=await S().importKey('jwk',jw,EC,false,['deriveKey']),pub=await S().importKey('jwk',JSON.parse(r.epub),EC,false,[]);
+  var key=await S().deriveKey({name:'ECDH',public:pub},priv,AES,false,['decrypt']);
+  return new TextDecoder().decode(await S().decrypt({name:'AES-GCM',iv:ub(r.iv)},key,ub(r.ct)))}
+async function getPw(w){var a=access(w);
+  if(a==='own'){if(isPub(w))return w.pw||'';var s=await db('secrets/'+me()+'/'+w.id);return s?s.pw||'':null}
+  if(a==='ok')return w.pw||'';
+  if(a==='approved'){try{return await decrypt(w)}catch(e){return null}}return null}
+
+/* actions */
+function loadQr(){return new Promise(function(ok,no){if(window.QRCode)return ok();var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function connect(w){
+  var pw;try{pw=await getPw(w)}catch(e){pw=null}
+  if(pw===null)return toast(tx('এই ডিভাইসে পাসওয়ার্ড নেই। আবার অ্যাক্সেস চান।','Password not available here. Ask for access again.'));
+  $('wsMn').textContent=w.ssid;$('wsMp').textContent=w.sec==='nopass'?tx('(পাসওয়ার্ড নেই)','(no password)'):pw;
+  var qr=$('wsQr');qr.innerHTML='';var e=function(s){return String(s).replace(/([\\;,":])/g,'\\$1')};
+  try{await loadQr();new QRCode(qr,{text:'WIFI:T:'+w.sec+';S:'+e(w.ssid)+';'+(w.sec==='nopass'?'':'P:'+e(pw)+';')+';',width:190,height:190,correctLevel:QRCode.CorrectLevel.M})}catch(x){qr.textContent='QR unavailable'}
+  $('wsCp').onclick=async function(){try{await navigator.clipboard.writeText(pw);toast(tx('পাসওয়ার্ড কপি হয়েছে','Password copied'))}catch(x){toast(tx('কপি হয়নি','Copy failed'))}};
+  $('wsShW').classList.add('on');
+  try{await put('cnt/'+w.id,{'.sv':{increment:1}});CNT[w.id]=(CNT[w.id]||0)+1}catch(x){}}
+async function save(){
+  var ssid=$('wsSsid').value.trim(),pw=$('wsPw').value,sec=$('wsSec').value;
+  if(!ssid)return toast(tx('নেটওয়ার্কের নাম দিন','Enter the network name'));
+  if(sec!=='nopass'&&!pw)return toast(tx('পাসওয়ার্ড দিন','Enter the password'));
+  var id=idOf(ssid),ex=W.find(function(x){return x.id===id});
+  if(ex&&ex.owner!==me())return toast(tx('এই নাম অন্য কেউ রেজিস্টার করেছে','This name is already registered by someone else'));
+  var rec={ssid:ssid.slice(0,64),sec:sec,vis:vis,owner:me(),ts:Date.now(),pw:vis==='public'&&sec!=='nopass'?pw.slice(0,128):''};
+  if(pos){rec.lat=pos.lat;rec.lng=pos.lng}
+  try{if(vis==='private')await put('secrets/'+me()+'/'+id,{pw:sec==='nopass'?'':pw.slice(0,128)});
+    await put('nets/'+id,rec);$('wsSsid').value='';$('wsPw').value='';toast(vis==='private'?tx('প্রাইভেট হিসেবে সেভ হয়েছে','Saved as private'):tx('পাবলিক হিসেবে সেভ হয়েছে','Saved as public'));await refresh()
+  }catch(e){toast(tx('সেভ করা যায়নি','Could not save'))}}
+async function remove(id){try{await del('nets/'+id);try{await del('secrets/'+me()+'/'+id)}catch(e){}W=W.filter(function(w){return w.id!==id});render()}catch(e){toast(tx('মোছা যায়নি','Could not delete'))}}
+function getPos(){return new Promise(function(ok,no){if(!navigator.geolocation)return no(new Error('na'));navigator.geolocation.getCurrentPosition(function(p){ok({lat:p.coords.latitude,lng:p.coords.longitude})},no,{enableHighAccuracy:true,timeout:12000})})}
+function hav(a,b,c,d){var r=function(x){return x*Math.PI/180},dl=r(c-a),dn=r(d-b),h=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)*Math.sin(dn/2);return 12742000*Math.asin(Math.sqrt(h))}
+async function findNear(){near={d:{},all:false,msg:''};
+  try{var p=await getPos(),n=0;W.forEach(function(w){if(w.lat!=null&&w.lng!=null){n++;var d=hav(p.lat,p.lng,w.lat,w.lng);if(d<=150)near.d[w.id]=d}});
+    if(!Object.keys(near.d).length){near.all=true;near.msg=n?tx('১৫০ মিটারের মধ্যে কোনো নেটওয়ার্ক নেই। সব দেখানো হচ্ছে।','Nothing within 150 m. Showing all networks.'):tx('কোনো নেটওয়ার্কে লোকেশন নেই। সব দেখানো হচ্ছে।','No saved locations yet. Showing all networks.')}
+  }catch(e){near.all=true;near.msg=tx('লোকেশন পাওয়া যায়নি। সব দেখানো হচ্ছে।','Location unavailable. Showing all networks.')}render()}
+
+/* data */
+async function refresh(){
+  if(!me()){err=tx('আগে ক্লাউড অ্যাকাউন্টে লগইন করুন','Log in to your cloud account first');render();return}
+  try{err='';
+    var o=await db('nets',undefined,'orderBy='+encodeURIComponent('"ts"')+'&limitToLast=300');
+    W=Object.keys(o||{}).map(function(k){return Object.assign({id:k},o[k])}).filter(function(w){return w&&w.ssid}).sort(function(a,b){return (b.ts||0)-(a.ts||0)});
+    CNT=(await db('cnt'))||{};
+    var ib=(await db('inbox/'+me()))||{};INB=Object.keys(ib).map(function(k){return Object.assign({id:k},ib[k])}).filter(function(r){return r&&r.s==='pending'});
+    var ks=Object.keys(SENT),ch=false;
+    await Promise.all(ks.map(async function(k){try{var r=await db('inbox/'+SENT[k].o+'/'+k);if(!r){delete SENT[k];ch=true}else if(r.s!==SENT[k].s){SENT[k].s=r.s;ch=true}}catch(e){}}));
+    if(ch)saveSent()
+  }catch(e){err=/HTTP 40[13]/.test(String(e.message))?tx('ডাটাবেস রুলস-এ "wishare" যোগ করা নেই','Database rules for "wishare" are missing'):tx('নেটওয়ার্ক সমস্যা, আবার চেষ্টা করুন','Network problem, try again')}
+  render()}
+
+/* render */
+function st(ico,v,l,c){return '<div class="wsSt" style="--c:'+c+'"><div class="wsSi">'+ico+'</div><div class="wsSv">'+v+'</div><div class="wsMu">'+l+'</div></div>'}
+function homeH(){
+  var ow={};W.forEach(function(w){ow[w.owner]=1});var pub=W.filter(isPub).length,tot=0;Object.keys(CNT).forEach(function(k){tot+=+CNT[k]||0});
+  var top=W.filter(function(w){return CNT[w.id]}).sort(function(a,b){return CNT[b.id]-CNT[a.id]}).slice(0,5),mx=top.length?CNT[top[0].id]:1;
+  return '<div class="wsGrid">'+st(I.users,Object.keys(ow).length,tx('শেয়ারকারী','People sharing'),'var(--primary)')+st(I.wifi,W.length,tx('নেটওয়ার্ক · পাবলিক ','Networks · public ')+pub,'#14b8a6')+st(I.lock,W.length-pub,tx('প্রাইভেট নেটওয়ার্ক','Private networks'),'#d97706')+st(I.zap,tot,tx('মোট কানেকশন','Total connections'),'#f59e0b')+'</div>'
+  +'<div class="wsCard"><h3>'+tx('সবচেয়ে বেশি ব্যবহৃত','Most used WiFi')+'</h3>'+(top.length?top.map(function(w,i){return '<div class="wsIt"><b style="width:22px">'+(i+1)+'</b><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsBar"><i style="width:'+Math.max(6,Math.round(CNT[w.id]/mx*100))+'%"></i></div></div><b>'+CNT[w.id]+'</b></div>'}).join(''):'<div class="wsEm">'+tx('এখনও কেউ কানেক্ট করেনি','No connections yet')+'</div>')+'</div>'}
+function act(w){var a=access(w);
+  if(a==='own'||a==='ok'||a==='approved')return '<button class="wsGo" data-ws="c" data-id="'+w.id+'" aria-label="Connect">'+I.link+'</button>';
+  if(a==='pending')return '<span class="wsPill">'+tx('অপেক্ষমাণ','Pending')+'</span>';
+  return '<button class="wsSm'+(a==='declined'?' no':'')+'" data-ws="r" data-id="'+w.id+'">'+(a==='declined'?tx('আবার চান','Ask again'):I.key+tx('অনুরোধ','Request'))+'</button>'}
+function findH(){
+  var l=W.filter(function(w){return String(w.ssid).toLowerCase().indexOf(q.toLowerCase())>-1}),nm='';
+  if(near){if(near.all)nm='<div class="wsMu" style="margin-top:10px">'+esc(near.msg)+'</div>';else{l=l.filter(function(w){return near.d[w.id]!=null}).sort(function(a,b){return near.d[a.id]-near.d[b.id]});nm='<div class="wsMu" style="margin-top:10px">'+tx('১৫০ মিটারের মধ্যের নেটওয়ার্ক','Networks within 150 m')+'</div>'}nm+='<button class="wsSm no" data-ws="clr" style="margin-top:8px">'+I.x+tx('মুছুন','Clear')+'</button>'}
+  return '<div class="wsCard"><input class="wsIn" id="wsQ" placeholder="'+tx('WiFi নাম খুঁজুন','Search WiFi name')+'" value="'+esc(q)+'" autocomplete="off"><button class="wsBt" data-ws="near" style="margin-top:10px">'+I.pin+tx('আমার কাছের WiFi','Find near me')+'</button>'+nm+'</div>'
+  +'<div class="wsCard" id="wsFl">'+fl(l)+'</div>'}
+function fl(l){return l.length?l.map(function(w){var pv=!isPub(w),d=near&&near.d[w.id]!=null?' · '+tx('প্রায় ','about ')+Math.round(near.d[w.id])+tx(' মি দূরে',' m away'):'';
+  return '<div class="wsIt"><div class="wsIc'+(pv?' pv':'')+'">'+(pv?I.lock:I.wifi)+'</div><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsMu">'+(pv?tx('প্রাইভেট','Private'):tx('পাবলিক','Public'))+d+'</div></div>'+act(w)+'</div>'}).join(''):'<div class="wsEm">'+(W.length?tx('কিছু পাওয়া যায়নি','No match'):tx('এখনও কোনো নেটওয়ার্ক নেই','No networks registered yet'))+'</div>'}
+function mineH(){var m=me(),my=W.filter(function(w){return w.owner===m});
+  var rq=INB.length?'<div class="wsCard"><h3>'+tx('অ্যাক্সেস অনুরোধ','Access requests')+'</h3>'+INB.map(function(r){return '<div class="wsIt"><div class="wsIc pv">'+I.key+'</div><div class="wsMeta"><div class="wsNm">'+esc(r.ssid)+'</div><div class="wsMu">'+tx('ইউজার ····','User ····')+esc(String(r.requester).slice(-4))+tx(' অ্যাক্সেস চায়',' wants access')+'</div></div><button class="wsSm ok" data-ws="ok" data-id="'+esc(r.id)+'" aria-label="Accept">'+I.ok+'</button><button class="wsSm no" data-ws="no" data-id="'+esc(r.id)+'" aria-label="Decline">'+I.x+'</button></div>'}).join('')+'</div>':'';
+  return rq+'<div class="wsCard"><h3>'+tx('আপনার WiFi রেজিস্টার করুন','Register your WiFi')+'</h3><div class="wsMu">'+tx('কে ব্যবহার করতে পারবে বেছে নিন','Choose who can use it')+'</div>'
+  +'<div class="wsSeg" style="margin-top:10px"><button data-ws="v" data-v="public" class="'+(vis==='public'?'on':'')+'">'+I.globe+tx('পাবলিক','Public')+'<small>'+tx('যে কেউ কানেক্ট করতে পারবে','Anyone can connect')+'</small></button><button data-ws="v" data-v="private" class="'+(vis==='private'?'on':'')+'">'+I.lock+tx('প্রাইভেট','Private')+'<small>'+tx('মালিকের অনুমতি লাগবে','Owner approval needed')+'</small></button></div>'
+  +'<label class="wsLb">'+tx('নেটওয়ার্কের নাম (SSID)','Network name (SSID)')+'</label><input class="wsIn" id="wsSsid" maxlength="32" autocomplete="off" placeholder="Home_5G">'
+  +'<label class="wsLb">'+tx('পাসওয়ার্ড','Password')+'</label><input class="wsIn" id="wsPw" type="password" maxlength="128" autocomplete="off">'
+  +'<label class="wsLb">'+tx('সিকিউরিটি','Security')+'</label><select class="wsIn" id="wsSec"><option value="WPA">WPA / WPA2 / WPA3</option><option value="WEP">WEP</option><option value="nopass">'+tx('ওপেন (পাসওয়ার্ড নেই)','Open (no password)')+'</option></select>'
+  +'<button class="wsBt g" data-ws="loc" style="margin-top:12px">'+I.pin+tx('আমার লোকেশন যুক্ত করুন','Attach my location')+'</button><div class="wsMu" id="wsLs" style="margin:8px 0 12px">'+tx('রাউটারের কাছে থেকে করুন, যাতে GPS দিয়ে খুঁজে পাওয়া যায়।','Stand near the router so others can find it by GPS.')+'</div>'
+  +'<button class="wsBt" data-ws="save">'+I.ok+tx('নেটওয়ার্ক সেভ করুন','Save network')+'</button></div>'
+  +'<div class="wsCard"><h3>'+tx('আমার নেটওয়ার্ক','My networks')+'</h3>'+(my.length?my.map(function(w){var pv=!isPub(w);return '<div class="wsIt"><div class="wsIc'+(pv?' pv':'')+'">'+(pv?I.lock:I.wifi)+'</div><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsMu">'+(pv?tx('প্রাইভেট','Private'):tx('পাবলিক','Public'))+' · '+tx('ব্যবহার ','used ')+(CNT[w.id]||0)+'</div></div><button class="wsIb" data-ws="d" data-id="'+w.id+'" aria-label="Delete">'+I.trash+'</button></div>'}).join(''):'<div class="wsEm">'+tx('এখনও কোনো নেটওয়ার্ক রেজিস্টার করেননি','You have not registered a network yet')+'</div>')+'</div>'}
+function render(){var b=$('wsBody');if(!b||!$('wsPage').classList.contains('on'))return;
+  var bd=$('wsBdg');bd.style.display=INB.length?'flex':'none';bd.textContent=INB.length;
+  document.querySelectorAll('#wsPage .wsTabs button').forEach(function(x){x.classList.toggle('on',x.dataset.t===tab)});
+  var keep=b.scrollTop,f=document.activeElement&&document.activeElement.id==='wsQ';
+  if(f&&tab==='find'){var l=W.filter(function(w){return String(w.ssid).toLowerCase().indexOf(q.toLowerCase())>-1});if(near&&!near.all)l=l.filter(function(w){return near.d[w.id]!=null});var e=$('wsFl');if(e){e.innerHTML=fl(l);return}}
+  b.innerHTML=(err?'<div class="wsCard wsMu">'+esc(err)+'</div>':'')+(tab==='home'?homeH():tab==='find'?findH():mineH());b.scrollTop=keep}
+function onClick(e){
+  if(e.target.id==='wsShW'){$('wsShW').classList.remove('on');return}
+  var t=e.target.closest('[data-ws]');if(!t)return;var a=t.dataset.ws,id=t.dataset.id,w=W.find(function(x){return x.id===id});
+  if(a==='close')closeP();else if(a==='tab'){tab=t.dataset.t;render()}
+  else if(a==='v'){vis=t.dataset.v;render()}
+  else if(a==='c'&&w)connect(w);else if(a==='r'&&w)requestAccess(w);
+  else if(a==='ok'){var r=INB.find(function(x){return x.id===id});if(r)approve(r)}
+  else if(a==='no'){patch('inbox/'+me()+'/'+id,{s:'declined'}).then(function(){toast(tx('অনুরোধ বাতিল','Request declined'));return refresh()}).catch(function(){toast(tx('ব্যর্থ','Failed'))})}
+  else if(a==='d'){if(t.dataset.arm===id)remove(id);else{t.dataset.arm=id;t.style.color='var(--red)';toast(tx('মুছতে আবার ট্যাপ করুন','Tap again to delete'));setTimeout(function(){delete t.dataset.arm;t.style.color=''},3000)}}
+  else if(a==='near')findNear();else if(a==='clr'){near=null;render()}
+  else if(a==='save')save();
+  else if(a==='loc')getPos().then(function(p){pos=p;$('wsLs').textContent=tx('লোকেশন যুক্ত হয়েছে','Location attached')}).catch(function(){pos=null;$('wsLs').textContent=tx('লোকেশন পাওয়া যায়নি। অনুমতি দিন।','Could not get location. Allow access.')});
+  else if(a==='la'){getPos().then(function(p){pos=p;locCheck()}).catch(function(){locState().then(function(s){locShow(s==='denied'?'denied':'no')})})}
+  else if(a==='shc')$('wsShW').classList.remove('on')}
+function locW(){return '<div class="wsLc" id="wsLocW"><div class="wsLcC" role="dialog" aria-modal="true"><div class="wsLcIc">'+I.pin+'</div><h4>'+tx('লোকেশনের অনুমতি আবশ্যক','Location permission required')+'</h4><p>'+tx('এই সুবিধাটি ব্যবহার করতে লোকেশনের অনুমতি প্রদান করা আবশ্যক। অনুমতি প্রদান না করলে আপনি এটি ব্যবহার করতে পারবেন না।','Location permission is required to use this feature. Without it, you will not be able to use WiFi sharing.')+'</p><div class="wsLcH" id="wsLcH"></div><button type="button" class="wsLcGo" data-ws="la">'+tx('পুনরায় চেষ্টা করুন','Try again')+'</button><button type="button" class="wsLcBk" data-ws="close">'+tx('ফিরে যান','Go back')+'</button></div></div>'}
+var locT=0;
+async function locState(){var s='prompt';try{if(navigator.permissions)s=(await navigator.permissions.query({name:'geolocation'})).state}catch(e){}return s}
+function locShow(s){var w=$('wsLocW');if(!w)return;w.classList.add('on');$('wsLcH').textContent=s==='denied'?tx('লোকেশন অ্যাক্সেস নিষ্ক্রিয় রয়েছে। অনুগ্রহ করে ব্রাউজার বা ফোনের সেটিংস থেকে অনুমতি প্রদান করে পুনরায় চেষ্টা করুন।','Location access is disabled. Please allow it in your browser or phone settings and try again.'):s==='nogeo'?tx('এই ডিভাইসে লোকেশন সুবিধা সমর্থিত নয়।','Location is not supported on this device.'):s==='no'?tx('অনুমতি প্রদান করা হয়নি। অনুগ্রহ করে পুনরায় চেষ্টা করুন।','Permission was not granted. Please try again.'):''}
+async function locCheck(){
+  if(!navigator.geolocation){locShow('nogeo');return false}
+  var s=await locState();
+  if(s==='granted'){var w=$('wsLocW');if(w&&w.classList.contains('on')){w.classList.remove('on');toast(tx('লোকেশন সক্রিয় করা হয়েছে','Location enabled'));refresh()}if(!pos)getPos().then(function(p){pos=p}).catch(function(){});return true}
+  var w2=$('wsLocW');if(w2&&w2.classList.contains('on')&&$('wsLcH').textContent)return false;locShow(s);return false}
+async function askLoc(){clearInterval(locT);var w=$('wsLocW');if(w)w.classList.remove('on');await locCheck();locT=setInterval(function(){var pg=$('wsPage');if(pg&&pg.classList.contains('on'))locCheck()},1500)}
+function ensure(){var e=$('wsPage');if(e)return e;
+  e=document.createElement('div');e.id='wsPage';e.setAttribute('role','dialog');e.setAttribute('aria-label','WiShare');
+  e.innerHTML='<div class="wsHd"><div class="wsRow"><button class="wsBack" type="button" data-ws="close" aria-label="Back">'+I.back+'</button><div class="wsT"><b>WiShare</b><small>'+tx('WiFi শেয়ার করুন, বিশ্বাসের সাথে কানেক্ট হোন','Share WiFi, connect with trust')+'</small></div></div>'
+  +'<div class="wsTabs"><button type="button" data-ws="tab" data-t="home" class="on">'+I.home+tx('হোম','Home')+'</button><button type="button" data-ws="tab" data-t="find">'+I.search+tx('খুঁজুন','Discover')+'</button><button type="button" data-ws="tab" data-t="mine">'+I.user+tx('আমার','My WiFi')+'<em id="wsBdg"></em></button></div></div>'
+  +'<div class="wsBody" id="wsBody"></div>'
+  +'<div class="wsShW" id="wsShW"><div class="wsSh"><h3 id="wsMn" style="margin:0;font-size:18px"></h3><div class="wsMu">'+tx('ক্যামেরা দিয়ে স্ক্যান করে কানেক্ট করুন','Scan with your camera to join')+'</div><div id="wsQr"></div><div class="wsPw"><code id="wsMp"></code><button class="wsIb" id="wsCp" aria-label="Copy">'+I.copy+'</button></div><button class="wsBt g" data-ws="shc">'+tx('বন্ধ করুন','Close')+'</button></div></div>'+locW();
+  e.addEventListener('click',onClick);
+  e.addEventListener('input',function(x){if(x.target.id==='wsQ'){q=x.target.value;render()}});
+  document.body.appendChild(e);return e}
+function openP(){ensure().classList.add('on');document.documentElement.style.overflow='hidden';render();refresh();askLoc();clearInterval(openP.t);openP.t=setInterval(function(){if(document.visibilityState==='visible')refresh()},25000)}
+function closeP(){clearInterval(locT);var e=$('wsPage');if(e)e.classList.remove('on');document.documentElement.style.overflow='';clearInterval(openP.t)}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('wsPage')&&$('wsPage').classList.contains('on')){if($('wsShW').classList.contains('on'))$('wsShW').classList.remove('on');else closeP()}});
+window.ftWishare={open:openP,close:closeP};
+})();
+</script>
+
 </body>
 </html>
