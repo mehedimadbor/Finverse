@@ -19744,6 +19744,8 @@ var idOf=function(s){return Array.from(new TextEncoder().encode(String(s).trim()
 var W=[],CNT={},INB=[],SENT={},vis='public',q='',near=null,pos=null,tab='home',err='';
 try{SENT=JSON.parse(LS.getItem('ftWsSent')||'{}')||{}}catch(e){SENT={}}
 var saveSent=function(){try{LS.setItem('ftWsSent',JSON.stringify(SENT))}catch(e){}};
+var nb=function(n){n=String(n);return bn()?n.replace(/\d/g,function(d){return '০১২৩৪৫৬৭৮৯'.charAt(d)}):n};
+var myName=function(){return (LS.getItem('myName_v1')||(LS.getItem('myUsername_v1')||'').replace(/^@/,'')||'User').slice(0,40)};
 var isPub=function(w){return (w.vis||'public')==='public'};
 var keyOf=function(w){return w.id+'_'+me()};
 function access(w){if(w.owner===me())return 'own';if(isPub(w))return 'ok';var s=SENT[keyOf(w)];return s?s.s:'none'}
@@ -19754,7 +19756,7 @@ var b64=function(u){var s='';new Uint8Array(u).forEach(function(c){s+=String.fro
 async function requestAccess(w){
   try{var kp=await S().generateKey(EC,true,['deriveKey']),k=keyOf(w);
     LS.setItem('ftWsK:'+k,JSON.stringify(await S().exportKey('jwk',kp.privateKey)));
-    await put('inbox/'+w.owner+'/'+k,{net:w.id,ssid:w.ssid,requester:me(),pub:JSON.stringify(await S().exportKey('jwk',kp.publicKey)),s:'pending',ts:Date.now()});
+    await put('inbox/'+w.owner+'/'+k,{net:w.id,ssid:w.ssid,requester:me(),rn:myName(),pub:JSON.stringify(await S().exportKey('jwk',kp.publicKey)),s:'pending',ts:Date.now()});
     SENT[k]={o:w.owner,id:w.id,s:'pending'};saveSent();toast(tx('মালিকের কাছে অনুরোধ পাঠানো হয়েছে','Request sent to the owner'));render()
   }catch(e){toast(tx('অনুরোধ পাঠানো যায়নি','Could not send request'))}}
 async function approve(r){
@@ -19790,9 +19792,8 @@ async function save(){
   var ssid=$('wsSsid').value.trim(),pw=$('wsPw').value,sec=$('wsSec').value;
   if(!ssid)return toast(tx('নেটওয়ার্কের নাম দিন','Enter the network name'));
   if(sec!=='nopass'&&!pw)return toast(tx('পাসওয়ার্ড দিন','Enter the password'));
-  var id=idOf(ssid),ex=W.find(function(x){return x.id===id});
-  if(ex&&ex.owner!==me())return toast(tx('এই নাম অন্য কেউ রেজিস্টার করেছে','This name is already registered by someone else'));
-  var rec={ssid:ssid.slice(0,64),sec:sec,vis:vis,owner:me(),ts:Date.now(),pw:vis==='public'&&sec!=='nopass'?pw.slice(0,128):''};
+  var id=idOf(ssid)+'_'+me();
+  var rec={ssid:ssid.slice(0,64),sec:sec,vis:vis,owner:me(),on:myName(),ts:Date.now(),pw:vis==='public'&&sec!=='nopass'?pw.slice(0,128):''};
   if(pos){rec.lat=pos.lat;rec.lng=pos.lng}
   try{if(vis==='private')await put('secrets/'+me()+'/'+id,{pw:sec==='nopass'?'':pw.slice(0,128)});
     await put('nets/'+id,rec);$('wsSsid').value='';$('wsPw').value='';toast(vis==='private'?tx('প্রাইভেট হিসেবে সেভ হয়েছে','Saved as private'):tx('পাবলিক হিসেবে সেভ হয়েছে','Saved as public'));await refresh()
@@ -19814,18 +19815,18 @@ async function refresh(){
     CNT=(await db('cnt'))||{};
     var ib=(await db('inbox/'+me()))||{};INB=Object.keys(ib).map(function(k){return Object.assign({id:k},ib[k])}).filter(function(r){return r&&r.s==='pending'});
     var ks=Object.keys(SENT),ch=false;
-    await Promise.all(ks.map(async function(k){try{var r=await db('inbox/'+SENT[k].o+'/'+k);if(!r){delete SENT[k];ch=true}else if(r.s!==SENT[k].s){SENT[k].s=r.s;ch=true}}catch(e){}}));
+    await Promise.all(ks.map(async function(k){try{var r=await db('inbox/'+SENT[k].o+'/'+k);if(!r){delete SENT[k];ch=true}else if(r.s!==SENT[k].s){if(r.s==='approved')toast(tx('আপনার অনুরোধ অনুমোদিত হয়েছে। এখন কানেক্ট করুন।','Your request was approved. You can connect now.'));SENT[k].s=r.s;ch=true}}catch(e){}}));
     if(ch)saveSent()
   }catch(e){err=/HTTP 40[13]/.test(String(e.message))?tx('ডাটাবেস রুলস-এ "wishare" যোগ করা নেই','Database rules for "wishare" are missing'):tx('নেটওয়ার্ক সমস্যা, আবার চেষ্টা করুন','Network problem, try again')}
   render()}
 
 /* render */
-function st(ico,v,l,c){return '<div class="wsSt" style="--c:'+c+'"><div class="wsSi">'+ico+'</div><div class="wsSv">'+v+'</div><div class="wsMu">'+l+'</div></div>'}
+function st(ico,v,l,c){return '<div class="wsSt" style="--c:'+c+'"><div class="wsSi">'+ico+'</div><div class="wsSv">'+nb(v)+'</div><div class="wsMu">'+l+'</div></div>'}
 function homeH(){
   var ow={};W.forEach(function(w){ow[w.owner]=1});var pub=W.filter(isPub).length,tot=0;Object.keys(CNT).forEach(function(k){tot+=+CNT[k]||0});
   var top=W.filter(function(w){return CNT[w.id]}).sort(function(a,b){return CNT[b.id]-CNT[a.id]}).slice(0,5),mx=top.length?CNT[top[0].id]:1;
   return '<div class="wsGrid">'+st(I.users,Object.keys(ow).length,tx('শেয়ারকারী','People sharing'),'var(--primary)')+st(I.wifi,W.length,tx('নেটওয়ার্ক · পাবলিক ','Networks · public ')+pub,'#14b8a6')+st(I.lock,W.length-pub,tx('প্রাইভেট নেটওয়ার্ক','Private networks'),'#d97706')+st(I.zap,tot,tx('মোট কানেকশন','Total connections'),'#f59e0b')+'</div>'
-  +'<div class="wsCard"><h3>'+tx('সবচেয়ে বেশি ব্যবহৃত','Most used WiFi')+'</h3>'+(top.length?top.map(function(w,i){return '<div class="wsIt"><b style="width:22px">'+(i+1)+'</b><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsBar"><i style="width:'+Math.max(6,Math.round(CNT[w.id]/mx*100))+'%"></i></div></div><b>'+CNT[w.id]+'</b></div>'}).join(''):'<div class="wsEm">'+tx('এখনও কেউ কানেক্ট করেনি','No connections yet')+'</div>')+'</div>'}
+  +'<div class="wsCard"><h3>'+tx('সবচেয়ে বেশি ব্যবহৃত','Most used WiFi')+'</h3>'+(top.length?top.map(function(w,i){return '<div class="wsIt"><b style="width:22px">'+(i+1)+'</b><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsBar"><i style="width:'+Math.max(6,Math.round(CNT[w.id]/mx*100))+'%"></i></div></div><b>'+nb(CNT[w.id])+'</b></div>'}).join(''):'<div class="wsEm">'+tx('এখনও কেউ কানেক্ট করেনি','No connections yet')+'</div>')+'</div>'}
 function act(w){var a=access(w);
   if(a==='own'||a==='ok'||a==='approved')return '<button class="wsGo" data-ws="c" data-id="'+w.id+'" aria-label="Connect">'+I.link+'</button>';
   if(a==='pending')return '<span class="wsPill">'+tx('অপেক্ষমাণ','Pending')+'</span>';
@@ -19835,10 +19836,10 @@ function findH(){
   if(near){if(near.all)nm='<div class="wsMu" style="margin-top:10px">'+esc(near.msg)+'</div>';else{l=l.filter(function(w){return near.d[w.id]!=null}).sort(function(a,b){return near.d[a.id]-near.d[b.id]});nm='<div class="wsMu" style="margin-top:10px">'+tx('১৫০ মিটারের মধ্যের নেটওয়ার্ক','Networks within 150 m')+'</div>'}nm+='<button class="wsSm no" data-ws="clr" style="margin-top:8px">'+I.x+tx('মুছুন','Clear')+'</button>'}
   return '<div class="wsCard"><input class="wsIn" id="wsQ" placeholder="'+tx('WiFi নাম খুঁজুন','Search WiFi name')+'" value="'+esc(q)+'" autocomplete="off"><button class="wsBt" data-ws="near" style="margin-top:10px">'+I.pin+tx('আমার কাছের WiFi','Find near me')+'</button>'+nm+'</div>'
   +'<div class="wsCard" id="wsFl">'+fl(l)+'</div>'}
-function fl(l){return l.length?l.map(function(w){var pv=!isPub(w),d=near&&near.d[w.id]!=null?' · '+tx('প্রায় ','about ')+Math.round(near.d[w.id])+tx(' মি দূরে',' m away'):'';
-  return '<div class="wsIt"><div class="wsIc'+(pv?' pv':'')+'">'+(pv?I.lock:I.wifi)+'</div><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsMu">'+(pv?tx('প্রাইভেট','Private'):tx('পাবলিক','Public'))+d+'</div></div>'+act(w)+'</div>'}).join(''):'<div class="wsEm">'+(W.length?tx('কিছু পাওয়া যায়নি','No match'):tx('এখনও কোনো নেটওয়ার্ক নেই','No networks registered yet'))+'</div>'}
+function fl(l){return l.length?l.map(function(w){var pv=!isPub(w),d=near&&near.d[w.id]!=null?' · '+tx('প্রায় ','about ')+nb(Math.round(near.d[w.id]))+tx(' মি দূরে',' m away'):'';
+  return '<div class="wsIt"><div class="wsIc'+(pv?' pv':'')+'">'+(pv?I.lock:I.wifi)+'</div><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsMu">'+(pv?tx('প্রাইভেট','Private'):tx('পাবলিক','Public'))+(w.owner===me()?' · '+tx('আপনার','Yours'):(w.on?' · '+tx('মালিক: ','Owner: ')+esc(w.on):''))+d+'</div></div>'+act(w)+'</div>'}).join(''):'<div class="wsEm">'+(W.length?tx('কিছু পাওয়া যায়নি','No match'):tx('এখনও কোনো নেটওয়ার্ক নেই','No networks registered yet'))+'</div>'}
 function mineH(){var m=me(),my=W.filter(function(w){return w.owner===m});
-  var rq=INB.length?'<div class="wsCard"><h3>'+tx('অ্যাক্সেস অনুরোধ','Access requests')+'</h3>'+INB.map(function(r){return '<div class="wsIt"><div class="wsIc pv">'+I.key+'</div><div class="wsMeta"><div class="wsNm">'+esc(r.ssid)+'</div><div class="wsMu">'+tx('ইউজার ····','User ····')+esc(String(r.requester).slice(-4))+tx(' অ্যাক্সেস চায়',' wants access')+'</div></div><button class="wsSm ok" data-ws="ok" data-id="'+esc(r.id)+'" aria-label="Accept">'+I.ok+'</button><button class="wsSm no" data-ws="no" data-id="'+esc(r.id)+'" aria-label="Decline">'+I.x+'</button></div>'}).join('')+'</div>':'';
+  var rq=INB.length?'<div class="wsCard"><h3>'+tx('অ্যাক্সেস অনুরোধ','Access requests')+'</h3>'+INB.map(function(r){return '<div class="wsIt"><div class="wsIc pv">'+I.key+'</div><div class="wsMeta"><div class="wsNm">'+esc(r.ssid)+'</div><div class="wsMu">'+esc(r.rn||(tx('ইউজার ····','User ····')+String(r.requester).slice(-4)))+tx(' অ্যাক্সেস চায়',' wants access')+'</div></div><button class="wsSm ok" data-ws="ok" data-id="'+esc(r.id)+'" aria-label="Accept">'+I.ok+'</button><button class="wsSm no" data-ws="no" data-id="'+esc(r.id)+'" aria-label="Decline">'+I.x+'</button></div>'}).join('')+'</div>':'';
   return rq+'<div class="wsCard"><h3>'+tx('আপনার WiFi রেজিস্টার করুন','Register your WiFi')+'</h3><div class="wsMu">'+tx('কে ব্যবহার করতে পারবে বেছে নিন','Choose who can use it')+'</div>'
   +'<div class="wsSeg" style="margin-top:10px"><button data-ws="v" data-v="public" class="'+(vis==='public'?'on':'')+'">'+I.globe+tx('পাবলিক','Public')+'<small>'+tx('যে কেউ কানেক্ট করতে পারবে','Anyone can connect')+'</small></button><button data-ws="v" data-v="private" class="'+(vis==='private'?'on':'')+'">'+I.lock+tx('প্রাইভেট','Private')+'<small>'+tx('মালিকের অনুমতি লাগবে','Owner approval needed')+'</small></button></div>'
   +'<label class="wsLb">'+tx('নেটওয়ার্কের নাম (SSID)','Network name (SSID)')+'</label><input class="wsIn" id="wsSsid" maxlength="32" autocomplete="off" placeholder="Home_5G">'
@@ -19846,7 +19847,7 @@ function mineH(){var m=me(),my=W.filter(function(w){return w.owner===m});
   +'<label class="wsLb">'+tx('সিকিউরিটি','Security')+'</label><select class="wsIn" id="wsSec"><option value="WPA">WPA / WPA2 / WPA3</option><option value="WEP">WEP</option><option value="nopass">'+tx('ওপেন (পাসওয়ার্ড নেই)','Open (no password)')+'</option></select>'
   +'<button class="wsBt g" data-ws="loc" style="margin-top:12px">'+I.pin+tx('আমার লোকেশন যুক্ত করুন','Attach my location')+'</button><div class="wsMu" id="wsLs" style="margin:8px 0 12px">'+tx('রাউটারের কাছে থেকে করুন, যাতে GPS দিয়ে খুঁজে পাওয়া যায়।','Stand near the router so others can find it by GPS.')+'</div>'
   +'<button class="wsBt" data-ws="save">'+I.ok+tx('নেটওয়ার্ক সেভ করুন','Save network')+'</button></div>'
-  +'<div class="wsCard"><h3>'+tx('আমার নেটওয়ার্ক','My networks')+'</h3>'+(my.length?my.map(function(w){var pv=!isPub(w);return '<div class="wsIt"><div class="wsIc'+(pv?' pv':'')+'">'+(pv?I.lock:I.wifi)+'</div><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsMu">'+(pv?tx('প্রাইভেট','Private'):tx('পাবলিক','Public'))+' · '+tx('ব্যবহার ','used ')+(CNT[w.id]||0)+'</div></div><button class="wsIb" data-ws="d" data-id="'+w.id+'" aria-label="Delete">'+I.trash+'</button></div>'}).join(''):'<div class="wsEm">'+tx('এখনও কোনো নেটওয়ার্ক রেজিস্টার করেননি','You have not registered a network yet')+'</div>')+'</div>'}
+  +'<div class="wsCard"><h3>'+tx('আমার নেটওয়ার্ক','My networks')+'</h3>'+(my.length?my.map(function(w){var pv=!isPub(w);return '<div class="wsIt"><div class="wsIc'+(pv?' pv':'')+'">'+(pv?I.lock:I.wifi)+'</div><div class="wsMeta"><div class="wsNm">'+esc(w.ssid)+'</div><div class="wsMu">'+(pv?tx('প্রাইভেট','Private'):tx('পাবলিক','Public'))+' · '+tx('ব্যবহার ','used ')+nb(CNT[w.id]||0)+'</div></div><button class="wsIb" data-ws="d" data-id="'+w.id+'" aria-label="Delete">'+I.trash+'</button></div>'}).join(''):'<div class="wsEm">'+tx('এখনও কোনো নেটওয়ার্ক রেজিস্টার করেননি','You have not registered a network yet')+'</div>')+'</div>'}
 function render(){var b=$('wsBody');if(!b||!$('wsPage').classList.contains('on'))return;
   var bd=$('wsBdg');bd.style.display=INB.length?'flex':'none';bd.textContent=INB.length;
   document.querySelectorAll('#wsPage .wsTabs button').forEach(function(x){x.classList.toggle('on',x.dataset.t===tab)});
