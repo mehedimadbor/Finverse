@@ -597,7 +597,12 @@ h1 [data-i18n="app_title"]{background:var(--grad); -webkit-background-clip:text;
 .tabs{position:sticky; top:calc(6px + env(safe-area-inset-top,0px)); z-index:8; background:color-mix(in srgb,var(--card) 84%,transparent); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); margin:10px 0 12px;}
 
 /* Quick actions + month card */
-.quick{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; margin-bottom:12px;}
+.quick{display:flex; gap:7px; margin-bottom:12px; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:none; overscroll-behavior-x:contain; padding:2px 1px 8px; margin-top:-2px;}
+.quick::-webkit-scrollbar{display:none;}
+.quick>button{flex:0 0 calc((100% - 28px)/5); scroll-snap-align:start;}
+.quick .qi svg{width:22px;height:22px;fill:none;stroke:var(--c);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.quick>button.qkAdd .qi{background:transparent; box-shadow:none; border:2px dashed color-mix(in srgb,var(--primary) 55%,transparent);}
+.quick>button.qkAdd{color:var(--primary);}
 .quick button{min-width:0;padding-left:1px!important;padding-right:1px!important;font-size:10.5px!important;}
 .quick button span:not(.qi){max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .quick button{display:flex; flex-direction:column; align-items:center; gap:7px; padding:12px 4px 10px; border:none; border-radius:20px; background:var(--card); color:var(--text); font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; box-shadow:var(--sh); transition:transform .12s;}
@@ -12155,20 +12160,21 @@ function scSection(){
   rows.push('<button type="button" class="mnR mnAddR" data-a="scAdd" style="--c:var(--primary)"><span class="mnI"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span class="mnL">'+L('শর্টকাট যোগ করুন','Add shortcut')+'</span>'+CHEV+'</button>');
   return '<div class="mnSec">'+L('শর্টকাট','Shortcuts')+'</div><div class="mnCard">'+rows.join('')+'</div>';
 }
-function openPicker(){
-  if($('ftScPk')) return;
-  const items=scItems(); let sel=scGet();
+function openPicker(opts){
+  if($('ftScPk')) return; opts=opts||{};
+  const getF=opts.get||scGet, setF=opts.set||scSet, hide=opts.hide||[], done=opts.done||(()=>{ try{ fillMenu(); }catch(e){} });
+  const items=scItems().filter(i=>hide.indexOf(i.id)<0); let sel=getF();
   const GR=[['f',L('ফিচার','Features')],['c',L('সেটিংস বিভাগ','Settings sections')],['d',L('সেটিংস অপশন','Settings options')]];
   const o=document.createElement('div'); o.id='ftScPk';
-  o.innerHTML='<div class="scBd"></div><div class="scSh"><div class="scHd"><b>'+L('শর্টকাট বেছে নিন','Choose shortcuts')+'</b><button type="button" class="scOk">'+L('হয়েছে','Done')+'</button></div><div class="scList">'
+  o.innerHTML='<div class="scBd"></div><div class="scSh"><div class="scHd"><b>'+(opts.title||L('শর্টকাট বেছে নিন','Choose shortcuts'))+'</b><button type="button" class="scOk">'+L('হয়েছে','Done')+'</button></div><div class="scList">'
     +GR.map(g=>{ const rows=items.filter(i=>i.g===g[0]); return rows.length?'<div class="scG">'+g[1]+'</div><div class="mnCard">'+rows.map(i=>'<button type="button" class="mnR scRow'+(sel.indexOf(i.id)>-1?' on':'')+'" data-id="'+esc(i.id)+'" style="--c:'+i.c+'"><span class="mnI g">'+i.ic+'</span><span class="mnL">'+i.lb+'</span><span class="scChk"></span></button>').join('')+'</div>':''; }).join('')+'</div></div>';
   document.body.appendChild(o);
-  const close=()=>{ o.remove(); try{ fillMenu(); }catch(e){} };
+  const close=()=>{ o.remove(); try{ done(); }catch(e){} };
   o.querySelector('.scBd').onclick=close; o.querySelector('.scOk').onclick=close;
   o.querySelector('.scList').addEventListener('click',e=>{
     const b=e.target.closest('.scRow'); if(!b) return; const id=b.dataset.id, i=sel.indexOf(id);
     if(i>-1){ sel.splice(i,1); b.classList.remove('on'); } else { sel.push(id); b.classList.add('on'); }
-    scSet(sel);
+    setF(sel);
   });
 }
 function fillMenu(){
@@ -12204,7 +12210,9 @@ function closeMenu(){ ov.classList.remove('on'); mn.classList.remove('on'); mn.s
 window.ftMenuOpen=openMenu; window.ftMenuClose=closeMenu;
 function onMenu(e){
   const b=e.target.closest('[data-a]'); if(!b) return; const a=b.dataset.a, k=b.dataset.k, from=cur(); if(a==='scAdd'){ openPicker(); return; } closeMenu();
-  setTimeout(()=>{
+  setTimeout(()=>runAct(a,k,from),60);
+}
+function runAct(a,k,from){
     if(a==='tab'){ try{ activateTab(k); }catch(x){} if(window.ftFsOn&&k!=='dash'&&['chat','friends','profile','notes'].indexOf(k)<0&&k!=='settings') ftFsOn(from); }
     else if(a==='mset') window.ftSetOpen(k,from);
     else if(a==='set') window.ftSetOpen(k);
@@ -12222,12 +12230,40 @@ function onMenu(e){
     else if(a==='login'){ const ls=$('loginScreen'); if(ls){ try{ if(window.ftCloud&&ftCloud.loginMode) ftCloud.loginMode('in'); }catch(x){} try{ if(window.loginPicRefresh) loginPicRefresh(); }catch(x){} document.documentElement.classList.remove('hasUser'); ls.style.zIndex='9500'; ls.style.display='flex'; ls.scrollTop=0; } }
     else if(a==='logout'&&window.ftCloud&&ftCloud.accountLogout) ftCloud.accountLogout();
     window.scrollTo(0,0);
-  },60);
 }
 $('mnBody').addEventListener('click',onMenu); $('mnFt').addEventListener('click',onMenu);
 $('mnX').onclick=closeMenu; ov.onclick=closeMenu;
 $('mnBell').onclick=()=>{ closeMenu(); setTimeout(()=>{ const b=$('ntBell'); if(b) b.click(); },200); };
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeMenu(); });
+/* ---------- dashboard quick row: swipe left → "+" to add more shortcuts ---------- */
+const QKK='ftQkSc_v1', QK_HIDE=['f:@expense','f:@deposit','f:@calc','f:notes','f:@planner','f:dash'];
+function qkGet(){ try{ const a=JSON.parse(localStorage.getItem(QKK)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function qkSet(a){ try{ localStorage.setItem(QKK,JSON.stringify(a)); }catch(e){} }
+function qkRender(){
+  const q=document.querySelector('#sec-dash .quick'); if(!q) return;
+  q.querySelectorAll('.qkX').forEach(n=>n.remove());
+  const map={}; scItems().forEach(o=>{ map[o.id]=o; });
+  const frag=document.createDocumentFragment();
+  qkGet().forEach(id=>{ const o=map[id]; if(!o) return;
+    const b=document.createElement('button'); b.type='button'; b.className='qkX'; b.dataset.a=o.a; b.dataset.k=o.k;
+    b.innerHTML='<span class="qi" style="--c:'+o.c+'">'+o.ic+'</span><span>'+o.lb+'</span>'; frag.appendChild(b); });
+  const add=document.createElement('button'); add.type='button'; add.className='qkX qkAdd'; add.setAttribute('aria-label','Add shortcut');
+  add.innerHTML='<span class="qi" style="--c:var(--primary)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><span class="bn">যোগ করুন</span><span class="en">Add</span>';
+  frag.appendChild(add); q.appendChild(frag);
+}
+(function(){
+  const q=document.querySelector('#sec-dash .quick'); if(!q) return;
+  q.addEventListener('click',e=>{
+    const b=e.target.closest('.qkX'); if(!b) return;
+    if(b.classList.contains('qkAdd')){
+      openPicker({get:qkGet,set:qkSet,hide:QK_HIDE,title:L('ড্যাশবোর্ড শর্টকাট বেছে নিন','Choose dashboard shortcuts'),done:()=>{ qkRender(); setTimeout(()=>{ try{ q.scrollTo({left:q.scrollWidth,behavior:'smooth'}); }catch(x){} },60); }});
+      return;
+    }
+    runAct(b.dataset.a,b.dataset.k,cur());
+  });
+  const _alq=window.applyLanguage; if(_alq) window.applyLanguage=function(){ const r=_alq.apply(this,arguments); try{ qkRender(); }catch(x){} return r; };
+  qkRender(); [600,1500,3200,6500].forEach(ms=>setTimeout(()=>{ try{ qkRender(); }catch(x){} },ms));
+})();
 /* header button beside the notification bell */
 function addBtn(){
   if($('ftMenuBtn')) return true; const h=document.querySelector('header.top'); if(!h) return false;
@@ -20358,5 +20394,429 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
 .wsEi{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;background:color-mix(in srgb,var(--primary) 12%,var(--card));margin-bottom:4px}
 .wsEi svg{width:26px;height:26px;fill:none;stroke:var(--primary);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 </style>
+
+<!-- ===== Quick Add: "+" button / dashboard shortcuts → 3-step sheet (amount & wallet → category & note → preview/save) ===== -->
+<style id="qaCss">
+#qaBack{position:fixed;inset:0;z-index:9790;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .22s}
+#qaBack.on{opacity:1;pointer-events:auto}
+#qaSheet{position:fixed;left:0;right:0;bottom:0;z-index:9810;margin:0 auto;max-width:560px;max-height:96vh;max-height:96dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--bg);color:var(--text);border-radius:30px 30px 0 0;padding:0 18px calc(18px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);box-shadow:0 -12px 44px rgba(0,0,0,.35);--qc:var(--red);scrollbar-width:none}
+#qaSheet::-webkit-scrollbar{display:none}
+#qaSheet.dep{--qc:var(--green)}
+#qaSheet.on{transform:translateY(0)}
+#qaSheet.drag{transition:none}
+#qaSheet .qgrab{position:relative;height:30px;margin:0 -18px;touch-action:none;cursor:grab}
+#qaSheet .qgrab::after{content:"";position:absolute;left:50%;top:12px;width:46px;height:5px;margin-left:-23px;border-radius:3px;background:color-mix(in srgb,var(--muted) 55%,transparent)}
+#qaSheet .qstep{animation:qaIn .22s ease both}
+@keyframes qaIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#qaSheet .qhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+#qaSheet .qttl{font-size:21px;font-weight:800;letter-spacing:.1px}
+#qaSheet .qnow{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--qc) 28%,var(--border));background:color-mix(in srgb,var(--qc) 7%,var(--card));color:var(--text);font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#qaSheet .qnow svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+#qaSheet .qprog{display:flex;gap:10px;margin:16px 0 18px}
+#qaSheet .qprog i{flex:1;height:4px;border-radius:3px;background:color-mix(in srgb,var(--muted) 30%,transparent);transition:background .25s}
+#qaSheet .qprog i.on{background:var(--qc)}
+#qaSheet .qamt{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1.5px solid color-mix(in srgb,var(--qc) 30%,var(--border));background:color-mix(in srgb,var(--card) 80%,var(--bg));border-radius:26px;padding:16px 22px;min-height:98px}
+#qaSheet .qamt>span{font-size:14.5px;color:var(--muted);flex:none}
+#qaSheet .qamtR{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px;min-width:0;max-width:74%}
+#qaSheet .qexp{font-size:16px;font-weight:500;color:var(--muted);min-height:21px;white-space:nowrap;max-width:100%;overflow-x:auto;scrollbar-width:none;font-variant-numeric:tabular-nums}
+#qaSheet .qexp::-webkit-scrollbar{display:none}
+#qaSheet .qexp i{font-style:normal;color:var(--qc);font-weight:800;padding:0 1px}
+#qaSheet .qres{font-size:38px;line-height:1.1;font-weight:800;white-space:nowrap;max-width:100%;overflow-x:auto;scrollbar-width:none;font-variant-numeric:tabular-nums}
+#qaSheet .qres::-webkit-scrollbar{display:none}
+#qaSheet .qlab{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:22px 0 12px}
+#qaSheet .qwl{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+#qaSheet .qwl::-webkit-scrollbar{display:none}
+#qaSheet .qw{flex:none;display:inline-flex;align-items:center;gap:10px;padding:14px 18px;border-radius:18px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:15px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s,border-color .15s}
+#qaSheet .qw svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#qaSheet .qw.sel{background:var(--qc);border-color:var(--qc);color:#fff}
+#qaSheet .qpad{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:clamp(48px,7.4vh,66px);gap:2px;margin-top:20px;background:color-mix(in srgb,var(--muted) 12%,var(--bg));border-radius:26px;padding:10px 8px}
+#qaSheet .qpad button{border:0;border-radius:18px;background:transparent;color:var(--text);font:inherit;font-size:26px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;display:grid;place-items:center;transition:background .1s,transform .1s;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#qaSheet .qpad button:active{background:color-mix(in srgb,var(--text) 11%,transparent);transform:scale(.94)}
+#qaSheet .qpad button.op{font-size:24px}
+#qaSheet .qpad svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#qaSheet .qcats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px 4px;margin-bottom:24px}
+#qaSheet .qc{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;font:inherit;color:var(--text);cursor:pointer;padding:0;min-width:0;-webkit-tap-highlight-color:transparent}
+#qaSheet .qc .qi{width:100%;max-width:58px;aspect-ratio:1/1;border-radius:18px;display:grid;place-items:center;background:color-mix(in srgb,var(--text) 7%,var(--card));border:2px solid color-mix(in srgb,var(--text) 9%,transparent);transition:border-color .14s,background .14s,transform .1s}
+#qaSheet .qc:active .qi{transform:scale(.93)}
+#qaSheet .qc.sel .qi{border-color:color-mix(in srgb,var(--ic,var(--qc)) 65%,var(--text) 15%);background:color-mix(in srgb,var(--ic,var(--qc)) 14%,var(--card))}
+#qaSheet .qc .qi svg{width:26px;height:26px;fill:none;stroke:var(--ic,var(--muted));stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#qaSheet .qc .qi svg .fl{fill:var(--ic,var(--muted));stroke:none}
+#qaSheet .qc.new .qi svg{stroke:var(--text)}
+#qaSheet .qc span{font-size:10.5px;font-weight:600;line-height:1.25;text-align:center;max-width:100%;overflow-wrap:anywhere}
+#qaSheet .qnew{display:none;gap:8px;margin:-10px 0 20px}
+#qaSheet .qnew.on{display:flex}
+#qaSheet .qin{width:100%;box-sizing:border-box;border:1.5px solid color-mix(in srgb,var(--qc) 30%,var(--border));background:color-mix(in srgb,var(--card) 80%,var(--bg));color:var(--text);border-radius:20px;padding:17px 20px;font:inherit;font-size:15.5px;outline:none;transition:border-color .15s}
+#qaSheet .qin:focus{border-color:var(--qc)}
+#qaSheet .qin::placeholder{color:var(--muted)}
+#qaSheet .qnew button{flex:none;border:0;border-radius:18px;padding:0 20px;background:var(--qc);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+#qaSheet .qrow{display:flex;gap:12px;margin-top:18px}
+#qaSheet .qbtn{flex:1;height:56px;border-radius:999px;border:1.5px solid color-mix(in srgb,var(--text) 18%,var(--border));background:transparent;color:var(--text);font:inherit;font-size:16px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .1s,opacity .15s}
+#qaSheet .qbtn:active{transform:scale(.98)}
+#qaSheet .qbtn.p{flex:1.5;border-color:transparent;background:var(--qc);color:#fff;box-shadow:0 10px 22px -12px var(--qc)}
+#qaSheet .qbtn.full{width:100%;flex:none;margin-top:18px}
+#qaSheet .qbtn:disabled{opacity:.5}
+#qaSheet .qhero{border-radius:28px;background:color-mix(in srgb,var(--card) 85%,var(--bg));padding:30px 16px 26px;text-align:center}
+#qaSheet .qprevAmt{font-size:46px;line-height:1.1;font-weight:800;color:var(--qc);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#qaSheet .qbadge{display:flex;justify-content:center;margin-top:16px}
+#qaSheet .qbadge span{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:12px;background:color-mix(in srgb,var(--qc) 16%,transparent);color:var(--qc);font-size:13px;font-weight:800;letter-spacing:.07em}
+#qaSheet .qbadge svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+#qaSheet .qdet{margin-top:16px;border-radius:28px;background:color-mix(in srgb,var(--card) 85%,var(--bg));padding:6px 22px}
+#qaSheet .qli{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:21px 0;border-bottom:1.5px solid color-mix(in srgb,var(--qc) 22%,var(--border));font-size:15px}
+#qaSheet .qli:last-child{border-bottom:0}
+#qaSheet .qli>span{color:var(--muted);font-weight:500;flex:none}
+#qaSheet .qli>b{font-weight:700;font-size:16px;text-align:right;display:flex;align-items:center;gap:10px;min-width:0;overflow-wrap:anywhere}
+#qaSheet .qli.nt>b{font-weight:600;font-size:14.5px}
+#qaSheet .qli button{border:0;background:none;color:var(--qc);padding:2px;cursor:pointer;display:grid;flex:none}
+#qaSheet .qli button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#qaDt{position:fixed;left:50%;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0}
+#qaToast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);z-index:9900;background:var(--text);color:var(--bg);padding:11px 20px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86vw;text-align:center}
+#qaToast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-height:700px){#qaSheet .qpad{margin-top:14px}#qaSheet .qprog{margin:12px 0 14px}}
+@media (prefers-reduced-motion:reduce){#qaSheet,#qaBack,#qaSheet .qstep{transition:none;animation:none}}
+</style>
+
+<div id="qaBack"></div>
+<div id="qaSheet" role="dialog" aria-modal="true"></div>
+<input type="datetime-local" id="qaDt" tabindex="-1" aria-hidden="true">
+<div id="qaToast" role="status" aria-live="polite"></div>
+
+<script id="qaJs">
+(function(){
+  var Q = null, watch = null, prevType = null, baseCount = 0, realAlert = null;
+  var $ = function(i){ return document.getElementById(i); };
+  var B = function(){ return typeof currentLang !== 'undefined' && currentLang === 'bn'; };
+  var L = function(bn, en){ return B() ? bn : en; };
+  var E = function(s){ return (typeof esc === 'function') ? esc(s) : String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var CASH = '__cash__';
+  var OPS = /[÷×−+]/;
+
+  /* ---------- icons (line icons, one colour each — same look as the reference screens) ---------- */
+  var S = function(p){ return '<svg viewBox="0 0 24 24" aria-hidden="true">' + p + '</svg>'; };
+  var IC = {
+    food:   ['#fbbf24', S('<path d="M4 10.5a8 6.5 0 0 1 16 0Z"/><path d="M3 14c1.3 1.2 2.7 1.2 4 0s2.7-1.2 4 0 2.7 1.2 4 0 2.7-1.2 4 0"/><path d="M4 17.5h16v.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 18Z"/>')],
+    car:    ['#38bdf8', S('<path d="M5 11l1.6-4.2A2 2 0 0 1 8.5 5.5h7a2 2 0 0 1 1.9 1.3L19 11"/><rect x="3.5" y="11" width="17" height="5.5" rx="1.8"/><circle cx="7.5" cy="16.8" r="1.7"/><circle cx="16.5" cy="16.8" r="1.7"/>')],
+    bill:   ['#94a3b8', S('<path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21Z"/><path d="M9 8h6M9 12h6M9 16h4"/>')],
+    shop:   ['#c084fc', S('<path d="M5 8h14l-1 12H6Z"/><path d="M9 8V7a3 3 0 0 1 6 0v1"/>')],
+    health: ['#f87171', S('<path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M12 11.5v5M9.5 14h5"/>')],
+    fun:    ['#fb923c', S('<path d="M7 8h10a4.5 4.5 0 0 1 4.4 5.4l-.7 3.4a2.2 2.2 0 0 1-3.8 1L15 16H9l-1.9 1.8a2.2 2.2 0 0 1-3.8-1l-.7-3.4A4.5 4.5 0 0 1 7 8Z"/><path d="M8 11v3M6.5 12.5h3"/><path d="M15.5 11.5h.01M17.5 13.5h.01"/>')],
+    home:   ['#34d399', S('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>')],
+    edu:    ['#60a5fa', S('<path d="M5 4h13a1 1 0 0 1 1 1v14H6a1 1 0 0 0-1 1Z"/><path d="M5 20V4"/><path d="M9 8h6"/>')],
+    phone:  ['#2dd4bf', S('<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>')],
+    work:   ['#34d399', S('<path d="M4 8h16v11H4Z"/><path d="M9 8V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M4 13h16"/>')],
+    store:  ['#fbbf24', S('<path d="M4 9l1.5-5h13L20 9Z"/><path d="M5 9v11h14V9"/><path d="M10 20v-5h4v5"/>')],
+    gift:   ['#f472b6', S('<path d="M4 11h16v9H4Z"/><path d="M3 8h18v3H3Z"/><path d="M12 8v12"/><path d="M12 8c-1-3.5-5-3.5-4-1 .5 1.2 2.5 1 4 1 1.5 0 3.5.2 4-1 1-2.5-3-2.5-4 1"/>')],
+    other:  ['#c4ab9b', S('<circle class="fl" cx="6" cy="12" r="1.6"/><circle class="fl" cx="12" cy="12" r="1.6"/><circle class="fl" cx="18" cy="12" r="1.6"/>')],
+    tag:    ['#a78bfa', S('<path d="M3 12V4h8l9 9-8 8Z"/><path d="M7.5 8h.01"/>')],
+    plus:   [null,      S('<path d="M12 5v14M5 12h14"/>')]
+  };
+  var TAGCOL = ['#a78bfa','#f472b6','#2dd4bf','#60a5fa','#fbbf24','#fb7185','#4ade80','#fb923c'];
+  var MAP = [
+    [/খাবার|খাদ্য|food|meal|grocer|restaurant|snack/i,'food'],
+    [/যাতায়াত|পরিবহন|ভ্রমণ|transport|travel|fuel|ride|bus|taxi/i,'car'],
+    [/ভাড়া|বাসা|\brent|house|home/i,'home'],
+    [/কেনাকাটা|শপিং|shop|cloth/i,'shop'],
+    [/বিল|bill|utilit/i,'bill'],
+    [/স্বাস্থ্য|চিকিৎসা|ঔষধ|health|medic|doctor|pharm/i,'health'],
+    [/শিক্ষা|পড়া|বই|edu|study|school|tuition|book/i,'edu'],
+    [/বিনোদন|entertain|movie|game|fun/i,'fun'],
+    [/মোবাইল|রিচার্জ|ইন্টারনেট|recharge|internet|mobile|phone/i,'phone'],
+    [/বেতন|চাকরি|salary|wage|job|income/i,'work'],
+    [/ব্যবসা|business|profit/i,'store'],
+    [/উপহার|gift|bonus/i,'gift'],
+    [/অন্যান্য|অন্য|other|misc/i,'other']
+  ];
+  function iconFor(name){
+    for(var i = 0; i < MAP.length; i++) if(MAP[i][0].test(name)) return IC[MAP[i][1]];
+    var h = 0; for(var j = 0; j < name.length; j++) h = (h * 31 + name.charCodeAt(j)) >>> 0;
+    return [TAGCOL[h % TAGCOL.length], IC.tag[1]];
+  }
+  var ICON_EXP = S('<path d="M12 19V5M6 11l6-6 6 6"/>');
+  var ICON_DEP = S('<path d="M12 5v14M6 13l6 6 6-6"/>');
+  var ICON_CLOCK = S('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>');
+  var ICON_CAL = S('<path d="M8 3v4M16 3v4M4 9h16"/><path d="M12 20H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6"/><path d="M15.5 20.5l.5-2.5 4.5-4.5 2 2-4.5 4.5Z" transform="translate(-1.5 -.5)"/>');
+  var ICON_BS = S('<path d="M19 12H5M11 6l-6 6 6 6"/>');
+  var ICON_WAL = S('<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10V7a2 2 0 0 1 2-2h11M16 14h5"/>');
+
+  /* ---------- helpers ---------- */
+  function toast(m){ try{ if(window.toast) window.toast(m); else { var t = $('qaToast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove('on'); }, 2200); } }catch(e){} }
+  function t12(hm){ var p = String(hm || '').split(':'), h = +p[0] || 0, m = (p[1] || '00').slice(0,2), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m + ' ' + ap; }
+  function dLabel(ds){ try{ var p = ds.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(B() ? 'bn-BD' : 'en-GB', {day:'numeric', month:'short', year:'numeric'}); }catch(e){ return ds; } }
+  function nowLabel(){
+    if(!Q.dt) return L('এখন (আজ · ', 'Now (Today · ') + t12(nowTime()) + ')';
+    return (Q.dt.date === todayStr() ? L('আজ', 'Today') : dLabel(Q.dt.date)) + ' · ' + t12(Q.dt.time);
+  }
+  function list(){ return Q.type === 'expense' ? (data.categories || []) : (data.incomeSources || []); }
+  function wallets(){ var a = [CASH]; if(Q.type === 'expense') (data.accounts || []).forEach(function(x){ a.push(x); }); return a; }
+  function wName(w){ return w === CASH ? L('ক্যাশ', 'Cash') : w; }
+  function lastKey(){ return 'qaLastCat_' + Q.type; }
+
+  /* tiny calculator: × ÷ before + −, no eval */
+  function calc(str){
+    var s = String(str || '').replace(/[÷×−+.]+$/, '');
+    if(!s) return 0;
+    var re = /(\d*\.?\d+|\d+\.)|([÷×−+])/g, m, nums = [], ops = [];
+    while((m = re.exec(s))){ if(m[1] !== undefined) nums.push(parseFloat(m[1])); else ops.push(m[2]); }
+    if(!nums.length || nums.length !== ops.length + 1) return 0;
+    var n2 = [nums[0]], o2 = [];
+    for(var i = 0; i < ops.length; i++){
+      if(ops[i] === '×') n2[n2.length - 1] *= nums[i + 1];
+      else if(ops[i] === '÷') n2[n2.length - 1] /= nums[i + 1];
+      else { o2.push(ops[i]); n2.push(nums[i + 1]); }
+    }
+    var v = n2[0];
+    for(var k = 0; k < o2.length; k++) v = o2[k] === '+' ? v + n2[k + 1] : v - n2[k + 1];
+    return (isFinite(v) && Math.abs(v) < 1e12) ? Math.round(v * 100) / 100 : 0;
+  }
+  function amount(){ var v = calc(Q.expr); return v > 0 ? v : 0; }
+  function money(v){ return '৳ ' + (+v).toLocaleString('en-IN', {maximumFractionDigits: 2}); }
+  function hasOp(){ return OPS.test(Q.expr); }
+  function expHtml(){ return E(Q.expr).replace(/([÷×−+])/g, '<i>$1</i>'); }
+  function amtRender(){
+    var e = $('qaExp'), r = $('qaAmt'); if(!e || !r) return;
+    if(hasOp()){ e.innerHTML = expHtml(); r.textContent = '= ' + money(calc(Q.expr)); e.scrollLeft = e.scrollWidth; }
+    else { e.innerHTML = ''; r.textContent = '৳ ' + (Q.expr || '0'); }
+  }
+
+  /* ---------- open / close ---------- */
+  function guardAlert(){
+    if(realAlert) return;
+    realAlert = window.alert;
+    window.alert = function(m){
+      try{ if(Q && typeof t === 'function' && String(m) === String(t('alert_saved'))) return; }catch(e){}
+      return realAlert.apply(window, arguments);
+    };
+  }
+  function sheetOpen(type){
+    type = type === 'deposit' ? 'deposit' : 'expense';
+    if(Q) sheetClose(true);
+    var last = ''; try{ last = localStorage.getItem('qaLastCat_' + type) || ''; }catch(e){}
+    var w = CASH; if(type === 'expense' && data.spendFund && (data.accounts || []).indexOf(data.spendFund) > -1) w = data.spendFund;
+    Q = {type:type, step:1, expr:'', cat:null, note:'', dt:null, adding:false, wallet:w, saving:false, last:last};
+    prevType = (typeof currentType !== 'undefined') ? currentType : null;
+    baseCount = data.transactions.length;
+    guardAlert();
+    var s = $('qaSheet'); s.classList.toggle('dep', type === 'deposit'); s.style.transform = '';
+    render();
+    $('qaBack').classList.add('on');
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ s.classList.add('on'); }); });
+    s.scrollTop = 0;
+  }
+  function sheetClose(quick){
+    var s = $('qaSheet'); s.classList.remove('on', 'drag'); s.style.transform = '';
+    if(!quick) $('qaBack').classList.remove('on');
+    clearInterval(watch); watch = null;
+    if(realAlert){ window.alert = realAlert; realAlert = null; }
+    if(prevType !== null){ try{ currentType = prevType; }catch(e){} prevType = null; }
+    try{ document.activeElement && document.activeElement.blur && document.activeElement.blur(); }catch(e){}
+    Q = null;
+  }
+  function closeAll(){ sheetClose(); }
+  function isOpen(){ return $('qaSheet').classList.contains('on'); }
+
+  /* "+" button in the bottom bar */
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('.bnbtn[data-bn="add"]');
+    if(!b) return;
+    var notes = $('sec-notes');
+    if(notes && notes.classList.contains('active')) return;       /* Notes tab keeps its own "new note" behaviour */
+    e.stopImmediatePropagation(); e.preventDefault();
+    if(isOpen()) closeAll(); else sheetOpen('expense');
+  }, true);
+  $('qaBack').addEventListener('click', closeAll);
+  document.addEventListener('keydown', function(e){
+    if(!Q || !isOpen()) return;
+    if(e.key === 'Escape'){ closeAll(); return; }
+    var tg = e.target && e.target.tagName;
+    if(Q.step !== 1 || tg === 'INPUT' || tg === 'TEXTAREA' || e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key, m = {'*':'×', 'x':'×', 'X':'×', '/':'÷', '-':'−', '+':'+'};
+    if(/^[0-9]$/.test(k) || k === '.') press(k);
+    else if(m[k]){ e.preventDefault(); press(m[k]); }
+    else if(k === 'Backspace') press('back');
+    else if(k === 'Enter'){ e.preventDefault(); goNext(); }
+  });
+
+  /* the dashboard "Expense / Income" shortcuts, the menu and widgets all call quickAdd → open the same sheet */
+  window.quickAdd = function(type){ sheetOpen(type); };
+  window.qaOpen = sheetOpen;
+
+  /* ---------- render ---------- */
+  function head(title){
+    return '<div class="qgrab" id="qaGrab"></div><div class="qhead"><div class="qttl">' + title + '</div><button type="button" class="qnow" id="qaNow">' + ICON_CLOCK + '<span>' + (Q.dt ? E(t12(Q.dt.time)) : L('এখন', 'Now')) + '</span></button></div>'
+      + '<div class="qprog">' + [1,2,3].map(function(n){ return '<i class="' + (n <= Q.step ? 'on' : '') + '"></i>'; }).join('') + '</div>';
+  }
+  function render(){
+    if(!Q) return;
+    Q.saving = false;
+    var s = $('qaSheet'), h = '', isE = Q.type === 'expense';
+    if(Q.step === 1){
+      h = head(isE ? L('খরচ যোগ করুন', 'Add Expense') : L('জমা যোগ করুন', 'Add Deposit'))
+        + '<div class="qamt"><span>' + L('পরিমাণ (টাকা)', 'Amount (BDT)') + '</span><div class="qamtR"><div class="qexp" id="qaExp"></div><div class="qres" id="qaAmt"></div></div></div>'
+        + '<div class="qlab">' + L('ওয়ালেট বাছাই করুন', 'Select wallet') + '</div>'
+        + '<div class="qwl" id="qaWl">' + wallets().map(function(w){
+            return '<button type="button" class="qw' + (Q.wallet === w ? ' sel' : '') + '" data-w="' + E(w) + '">' + ICON_WAL + '<span>' + E(wName(w)) + ' · BDT</span></button>';
+          }).join('') + '</div>'
+        + '<div class="qpad" id="qaPad">'
+        + ['1','2','3','÷','4','5','6','×','7','8','9','−','.','0','back','+'].map(function(k){
+            if(k === 'back') return '<button type="button" data-k="back" aria-label="Backspace">' + ICON_BS + '</button>';
+            return '<button type="button" data-k="' + k + '"' + (OPS.test(k) ? ' class="op"' : '') + '>' + k + '</button>';
+          }).join('')
+        + '</div><button type="button" class="qbtn p full" id="qaNext">' + L('পরবর্তী', 'Next') + '</button>';
+    }else if(Q.step === 2){
+      var items = list();
+      h = head(isE ? L('খাত ও নোট', 'Category & Note') : L('উৎস ও নোট', 'Source & Note'))
+        + '<div class="qlab" style="margin-top:4px">' + (isE ? L('খাত বাছাই করুন', 'Select category') : L('উৎস বাছাই করুন', 'Select source')) + '</div>'
+        + '<div class="qcats">'
+        + items.map(function(c, i){ var ic = iconFor(c); return '<button type="button" class="qc' + (Q.cat === c ? ' sel' : '') + '" data-i="' + i + '" style="--ic:' + ic[0] + '"><div class="qi">' + ic[1] + '</div><span>' + E(c) + '</span></button>'; }).join('')
+        + '<button type="button" class="qc new" id="qaNewBtn"><div class="qi">' + IC.plus[1] + '</div><span>' + L('নতুন', 'New') + '</span></button>'
+        + '</div>'
+        + '<div class="qnew' + (Q.adding ? ' on' : '') + '" id="qaNewRow"><input class="qin" id="qaNewIn" maxlength="30" placeholder="' + (isE ? L('নতুন খাতের নাম', 'New category name') : L('নতুন উৎসের নাম', 'New source name')) + '"><button type="button" id="qaNewOk">' + L('যোগ', 'Add') + '</button></div>'
+        + '<div class="qlab" style="margin-top:6px">' + L('অতিরিক্ত তথ্য', 'Additional details') + '</div>'
+        + '<input class="qin" id="qaNote" maxlength="120" placeholder="' + L('নোট (ঐচ্ছিক)', 'Note (Optional)') + '" value="' + E(Q.note) + '">'
+        + '<div class="qrow"><button type="button" class="qbtn" id="qaBk">' + L('পিছনে', 'Back') + '</button><button type="button" class="qbtn p" id="qaPrev">' + L('প্রিভিউ', 'Preview') + '</button></div>';
+    }else{
+      h = head(L('লেনদেন প্রিভিউ', 'Preview Transaction'))
+        + '<div class="qhero"><div class="qprevAmt">' + money(amount()) + '</div>'
+        + '<div class="qbadge"><span>' + (isE ? ICON_EXP : ICON_DEP) + (isE ? L('খরচ', 'EXPENSE') : L('জমা', 'DEPOSIT')) + '</span></div></div>'
+        + '<div class="qdet">'
+        + '<div class="qli"><span>' + (isE ? L('খাত', 'Category') : L('উৎস', 'Source')) + '</span><b>' + E(Q.cat || '') + '</b></div>'
+        + '<div class="qli"><span>' + L('ওয়ালেট', 'Wallet') + '</span><b>' + E(wName(Q.wallet)) + ' (BDT)</b></div>'
+        + (Q.note ? '<div class="qli nt"><span>' + L('নোট', 'Note') + '</span><b>' + E(Q.note) + '</b></div>' : '')
+        + '<div class="qli"><span>' + L('তারিখ ও সময়', 'Date & Time') + '</span><b>' + E(nowLabel()) + '<button type="button" id="qaCal" aria-label="' + L('তারিখ বদলান', 'Change date') + '">' + ICON_CAL + '</button></b></div>'
+        + '</div>'
+        + '<div class="qrow"><button type="button" class="qbtn" id="qaBk">' + L('পিছনে', 'Back') + '</button><button type="button" class="qbtn p" id="qaSave">' + L('সেভ', 'Save') + '</button></div>';
+    }
+    s.innerHTML = '<div class="qstep">' + h + '</div>';
+    wire();
+    if(Q.step === 1) amtRender();
+  }
+
+  /* ---------- keypad ---------- */
+  function press(k){
+    if(!Q || Q.step !== 1) return;
+    if(k === 'back') Q.expr = Q.expr.slice(0, -1);
+    else if(OPS.test(k)){ if(!Q.expr) return; if(/[÷×−+.]$/.test(Q.expr)) Q.expr = Q.expr.slice(0, -1); if(!Q.expr) return; Q.expr += k; }
+    else if(k === '.'){ var last = Q.expr.split(/[÷×−+]/).pop(); if(last.indexOf('.') > -1) return; Q.expr += last ? '.' : '0.'; }
+    else { if(Q.expr.length >= 24) return; var lp = Q.expr.split(/[÷×−+]/).pop(); if(lp === '0' && k !== '0') Q.expr = Q.expr.slice(0, -1); else if(lp === '0' && k === '0') return; Q.expr += k; }
+    amtRender();
+  }
+  function goNext(){
+    if(!Q || Q.step !== 1) return;
+    if(!amount()){ toast(L('সঠিক পরিমাণ লিখুন', 'Enter a valid amount')); return; }
+    var items = list();
+    if(!items.length) Q.cat = null;
+    else if(!Q.cat || items.indexOf(Q.cat) < 0){
+      Q.cat = items.indexOf(Q.last) > -1 ? Q.last : null;
+      if(!Q.cat){ for(var i = 0; i < items.length; i++){ if(iconFor(items[i]) === IC.other){ Q.cat = items[i]; break; } } }
+      if(!Q.cat) Q.cat = items[0];
+    }
+    Q.step = 2; render();
+  }
+
+  function wire(){
+    var s = $('qaSheet');
+    var now = $('qaNow'); if(now) now.onclick = pickDt;
+    var gr = $('qaGrab'); if(gr) dragWire(gr);
+    var pad = $('qaPad');
+    if(pad){
+      var lp = null;
+      pad.addEventListener('click', function(e){
+        var b = e.target.closest('[data-k]'); if(!b) return;
+        if(b._long){ b._long = false; return; }
+        press(b.dataset.k);
+      });
+      var bk = pad.querySelector('[data-k="back"]');
+      if(bk){
+        bk.addEventListener('pointerdown', function(){ bk._long = false; clearTimeout(lp); lp = setTimeout(function(){ bk._long = true; if(Q){ Q.expr = ''; amtRender(); } }, 550); });
+        ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ bk.addEventListener(ev, function(){ clearTimeout(lp); }); });
+      }
+    }
+    var wl = $('qaWl'); if(wl) wl.onclick = function(e){
+      var b = e.target.closest('.qw'); if(!b) return;
+      Q.wallet = b.dataset.w;
+      wl.querySelectorAll('.qw').forEach(function(x){ x.classList.toggle('sel', x === b); });
+    };
+    var nx = $('qaNext'); if(nx) nx.onclick = goNext;
+    s.querySelectorAll('.qc[data-i]').forEach(function(b){ b.onclick = function(){
+      Q.cat = list()[+b.dataset.i];
+      s.querySelectorAll('.qc').forEach(function(x){ x.classList.toggle('sel', x === b); });
+    }; });
+    var nb = $('qaNewBtn'); if(nb) nb.onclick = function(){ Q.adding = !Q.adding; $('qaNewRow').classList.toggle('on', Q.adding); if(Q.adding){ $('qaNewIn').focus(); setTimeout(function(){ try{ $('qaNewRow').scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){} }, 200); } };
+    var no = $('qaNewOk'); if(no) no.onclick = addNew;
+    var ni = $('qaNewIn'); if(ni) ni.onkeydown = function(e){ if(e.key === 'Enter'){ e.preventDefault(); addNew(); } };
+    var nt = $('qaNote'); if(nt){ nt.oninput = function(){ Q.note = nt.value; }; nt.onkeydown = function(e){ if(e.key === 'Enter'){ e.preventDefault(); nt.blur(); $('qaPrev') && $('qaPrev').click(); } }; }
+    var bb = $('qaBk'); if(bb) bb.onclick = function(){ if(nt) Q.note = nt.value; Q.step--; render(); };
+    var pv = $('qaPrev'); if(pv) pv.onclick = function(){
+      if(nt) Q.note = nt.value;
+      if(!Q.cat){ toast(Q.type === 'expense' ? L('একটি খাত বাছাই করুন', 'Pick a category') : L('একটি উৎস বাছাই করুন', 'Pick a source')); return; }
+      Q.step = 3; render();
+    };
+    var cal = $('qaCal'); if(cal) cal.onclick = pickDt;
+    var sv = $('qaSave'); if(sv) sv.onclick = save;
+  }
+  function addNew(){
+    var v = ($('qaNewIn').value || '').trim(); if(!v) return;
+    var arr = list(), hit = null;
+    for(var i = 0; i < arr.length; i++) if(String(arr[i]).toLowerCase() === v.toLowerCase()) hit = arr[i];
+    if(!hit){ arr.push(v); hit = v; try{ saveData(); }catch(e){} }
+    Q.cat = hit; Q.adding = false; render();
+  }
+  function pickDt(){
+    var d = $('qaDt'), t = Q.dt || {date: todayStr(), time: nowTime()};
+    d.value = t.date + 'T' + t.time;
+    d.onchange = function(){ if(!d.value || !Q) return; var p = d.value.split('T'); Q.dt = {date:p[0], time:(p[1] || '00:00').slice(0,5)}; if(Q.step === 1) { var n = $('qaNow'); if(n) n.lastChild.textContent = t12(Q.dt.time); } else render(); };
+    try{ d.showPicker ? d.showPicker() : d.click(); }catch(e){ try{ d.focus(); d.click(); }catch(e2){} }
+  }
+
+  /* drag the handle down to dismiss */
+  function dragWire(h){
+    var s = $('qaSheet'), y0 = null, dy = 0;
+    h.addEventListener('pointerdown', function(e){ y0 = e.clientY; dy = 0; try{ h.setPointerCapture(e.pointerId); }catch(x){} s.classList.add('drag'); });
+    h.addEventListener('pointermove', function(e){ if(y0 === null) return; dy = Math.max(0, e.clientY - y0); s.style.transform = 'translateY(' + dy + 'px)'; });
+    var end = function(){ if(y0 === null) return; y0 = null; s.classList.remove('drag'); if(dy > 110) closeAll(); else s.style.transform = ''; };
+    h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+  }
+
+  /* ---------- save: hands the data to the app's own form + saveTx(), so every rule (balance check, spend guard, budgets, wallet funds) still applies ---------- */
+  var _ff = window.ftFundFor;
+  if(typeof _ff === 'function'){
+    window.ftFundFor = function(type){
+      if(Q && Q.saving && Q.type === 'expense' && type === 'expense'){
+        return (Q.wallet !== CASH && (data.accounts || []).indexOf(Q.wallet) > -1) ? Q.wallet : null;
+      }
+      return _ff.apply(this, arguments);
+    };
+  }
+  function save(){
+    var amt = amount(); if(!amt) return;
+    var btn = $('qaSave'); if(btn) btn.disabled = true;
+    Q.saving = true;
+    try{
+      editingTxId = null; currentType = Q.type;
+      if(Q.type === 'expense'){ refreshCategorySelect(); $('inCategory').value = Q.cat; }
+      else { refreshSourceSelect(); $('inSource').value = Q.cat; }
+      $('inAmount').value = amt;
+      $('inNote').value = Q.note.trim();
+      $('inDate').value = Q.dt ? Q.dt.date : todayStr();
+      $('inTime').value = Q.dt ? Q.dt.time : nowTime();
+      saveTx();
+    }catch(err){ console.error('quick add failed', err); Q.saving = false; if(btn) btn.disabled = false; toast(L('সেভ করা যায়নি', 'Could not save')); return; }
+    if(data.transactions.length > baseCount){ done(); return; }
+    /* not saved yet (a warning / confirm dialog may be open, or a check refused it): keep the sheet and finish as soon as the entry lands */
+    if(btn) btn.disabled = false;
+    clearInterval(watch); var n = 0;
+    watch = setInterval(function(){
+      n++;
+      if(!Q){ clearInterval(watch); return; }
+      if(data.transactions.length > baseCount){ done(); }
+      else if(n > 100){ clearInterval(watch); watch = null; }
+    }, 300);
+  }
+  function done(){
+    try{ if(Q.cat) localStorage.setItem(lastKey(), Q.cat); }catch(e){}
+    sheetClose(); toast(L('সেভ হয়েছে ✓', 'Saved ✓'));
+  }
+})();
+</script>
+
 </body>
 </html>
