@@ -64,6 +64,48 @@
 })();
 </script>
 
+<script id="ftRegionCore">
+/* ===== Region core: time zone + 12/24-hour time format used app-wide (loaded first) ===== */
+(function(){
+  var K='ftRegion_v1';
+  var R={
+    intl:{n:['আন্তর্জাতিক','International'],tz:'',h12:true,c:'INT'},
+    bd:{n:['বাংলাদেশ','Bangladesh'],tz:'Asia/Dhaka',h12:true,c:'BD'},
+    in:{n:['ভারত','India'],tz:'Asia/Kolkata',h12:true,c:'IN'},
+    ae:{n:['দুবাই (UAE)','Dubai (UAE)'],tz:'Asia/Dubai',h12:true,c:'AE'},
+    pk:{n:['পাকিস্তান','Pakistan'],tz:'Asia/Karachi',h12:true,c:'PK'},
+    it:{n:['ইতালি','Italy'],tz:'Europe/Rome',h12:false,c:'IT'},
+    sa:{n:['সৌদি আরব','Saudi Arabia'],tz:'Asia/Riyadh',h12:true,c:'SA'}
+  };
+  var code='bd'; try{ var v=localStorage.getItem(K); if(v&&R[v]) code=v; }catch(e){}
+  var _DTF=Intl.DateTimeFormat, dev='UTC'; try{ dev=new _DTF().resolvedOptions().timeZone||'UTC'; }catch(e){}
+  var tz=function(){ return R[code].tz||dev; };
+  window.ftRegionCode=function(){ return code; };
+  window.ftRegionList=function(){ return R; };
+  window.ftRegionTZ=tz;
+  window.ftH12=function(){ return R[code].h12; };
+  window.ftFmtHM=function(t){ var p=String(t==null?'':t).split(':'), h=+p[0], m=(p[1]||'00').slice(0,2); if(!isFinite(h)||p.length<2) return t==null?'':String(t);
+    if(!R[code].h12) return ('0'+h).slice(-2)+':'+m; return (h%12||12)+':'+m+' '+(h>=12?'PM':'AM'); };
+  window.ftSetRegion=function(c){ if(!R[c]) return; try{ localStorage.setItem(K,c); }catch(e){} location.reload(); };
+  /* every clock/time the app draws through Intl or toLocale*String follows the chosen region */
+  var norm=function(o,m){
+    o=o?Object.assign({},o):{};
+    var hasT=!!(o.hour||o.minute||o.timeStyle);
+    if(m==='toLocaleTimeString') hasT=true;
+    if(m==='toLocaleString'&&!(o.year||o.month||o.day||o.weekday||o.dateStyle||o.hour||o.minute)) hasT=true;
+    if(o.timeZone==='Asia/Dhaka') o.timeZone=tz();
+    if(hasT){ if(o.hour12===undefined&&o.hourCycle===undefined) o.hour12=R[code].h12; if(!o.timeZone&&code!=='intl') o.timeZone=tz(); }
+    return o;
+  };
+  var DTF=function(l,o){ return new _DTF(l,o?norm(o,''):o); };
+  DTF.prototype=_DTF.prototype; DTF.supportedLocalesOf=_DTF.supportedLocalesOf;
+  try{ Intl.DateTimeFormat=DTF; }catch(e){}
+  ['toLocaleTimeString','toLocaleString','toLocaleDateString'].forEach(function(m){
+    var f=Date.prototype[m]; Date.prototype[m]=function(l,o){ return f.call(this,l,norm(o,m)); };
+  });
+})();
+</script>
+
 <script>window.__ftIP=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__ftIP=e;try{window.dispatchEvent(new Event('ftInstallReady'));}catch(_){}});</script>
 <script>try{var d=document.documentElement;if(localStorage.getItem("loginDone_v1")==="true")d.classList.add("hasUser");var th=localStorage.getItem("appTheme_v1");if(th)d.setAttribute("data-theme",th);d.classList.add("booting");setTimeout(function(){d.classList.remove("booting")},2500)}catch(e){}</script>
 <script>try{var L=localStorage,D=document.documentElement;if(L.getItem("loginDone_v1")==="true"&&(L.getItem("appPinEnabled_v1")==="true"||(L.getItem("appLockEnabled_v1")==="true"&&L.getItem("appLockCredId_v1")&&window.PublicKeyCredential&&navigator.credentials)))D.classList.add("locked")}catch(e){}</script>
@@ -1415,7 +1457,7 @@ html body .loginScreen .loginBox input.lgIn:-webkit-autofill,html body .loginScr
   <div class="lkFoot"><span class="bn">Finverse লক দিয়ে সুরক্ষিত</span><span class="en">Protected by Finverse Lock</span></div>
 </div>
 <script>(function(){try{var g=function(k){return localStorage.getItem(k)||''},$=function(i){return document.getElementById(i)},en=g('appLang_v1')==='en',n=g('myName_v1'),u=g('myUsername_v1'),pic=g('myProfilePic_v1'),d=new Date();
-var tm=new Intl.DateTimeFormat(en?'en-US':'bn-BD',{timeZone:'Asia/Dhaka',hour:'numeric',minute:'2-digit',hour12:true}).format(d),dt=new Intl.DateTimeFormat(en?'en-GB':'bn-BD',{timeZone:'Asia/Dhaka',weekday:'long',day:'numeric',month:'long'}).format(d);
+var tm=new Intl.DateTimeFormat(en?'en-US':'bn-BD',{timeZone:'Asia/Dhaka',hour:'numeric',minute:'2-digit',hour12:ftH12()}).format(d),dt=new Intl.DateTimeFormat(en?'en-GB':'bn-BD',{timeZone:'Asia/Dhaka',weekday:'long',day:'numeric',month:'long'}).format(d);
 $('lkTime').textContent=tm;$('lkDate').textContent=dt;
 $('lockGreetName').textContent=n?((en?'Welcome, ':'স্বাগতম, ')+n):(en?'Welcome!':'স্বাগতম!');
 if(u){var e=$('lockGreetUser');e.textContent='@'+u.replace(/^@/,'');e.style.display='inline-block'}
@@ -3293,7 +3335,7 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <div id="wgSetBody"></div>
   </div>
   <div class="box">
-    <h3 data-i18n="settings_recurring">নির্ধারিত লেনদেন</h3>
+    <h3 data-i18n="settings_recurring">অটোমেশন</h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px;" data-i18n="recurring_note">বাসা ভাড়া, বেতন, বিলের মতো যা প্রতি মাসে আসে/যায় সেটা একবার সেট করুন — নির্দিষ্ট তারিখ ও সময়ে নিজে থেকে যোগ হয়ে যাবে (অ্যাপ খোলা থাকলে ঠিক সময়ে, বন্ধ থাকলে পরের বার খুললেই)। (সেট করার সময় ওই মাসের তারিখ ও সময় পার হয়ে গেলে, পরের মাস থেকে শুরু হবে।)</p>
     <label data-i18n="lbl_rec_type">ধরন</label>
     <select id="recType" onchange="recTypeChange()">
@@ -3556,7 +3598,7 @@ const I18N = {
     limit_over:'আজকের সীমা ছাড়িয়ে গেছে', limit_left:'আজ আর খরচ করতে পারবেন ', lbl_daily_limit:'দৈনিক খরচের সীমা (টাকা)',
     lbl_due:'ফেরতের তারিখ (ঐচ্ছিক)', dash_remind_heading:'লোনের রিমাইন্ডার', rem_get:'ফেরত পাবেন', rem_owe:'ফেরত দিতে হবে',
     rem_overdue:'দিন আগে তারিখ পার হয়েছে', rem_today:'আজই ফেরতের তারিখ', rem_soon:'দিন পরে', rem_popup_title:'লোন ফেরতের রিমাইন্ডার',
-    settings_recurring:'নির্ধারিত লেনদেন', recurring_note:'বাসা ভাড়া, বেতন, বিলের মতো যা প্রতি মাসে আসে/যায় সেটা একবার সেট করুন — নির্দিষ্ট তারিখ ও সময়ে নিজে থেকে যোগ হয়ে যাবে (অ্যাপ খোলা থাকলে ঠিক সময়ে, বন্ধ থাকলে পরের বার খুললেই)। (সেট করার সময় ওই মাসের তারিখ ও সময় পার হয়ে গেলে, পরের মাস থেকে শুরু হবে।)',
+    settings_recurring:'অটোমেশন', recurring_note:'বাসা ভাড়া, বেতন, বিলের মতো যা প্রতি মাসে আসে/যায় সেটা একবার সেট করুন — নির্দিষ্ট তারিখ ও সময়ে নিজে থেকে যোগ হয়ে যাবে (অ্যাপ খোলা থাকলে ঠিক সময়ে, বন্ধ থাকলে পরের বার খুললেই)। (সেট করার সময় ওই মাসের তারিখ ও সময় পার হয়ে গেলে, পরের মাস থেকে শুরু হবে।)',
     lbl_rec_type:'ধরন', lbl_rec_amount:'পরিমাণ (টাকা)', lbl_rec_day:'প্রতি মাসের কত তারিখে (১–৩১)', lbl_rec_time:'কোন সময়ে এন্ট্রি হবে', rec_auto_added:'নিয়মিত এন্ট্রি যোগ হয়েছে', lbl_rec_note:'নোট (যেমন: বাসা ভাড়া)',
     btn_rec_add:'যোগ করুন', rec_empty:'কোনো নিয়মিত এন্ট্রি নেই', rec_added:'নিয়মিত এন্ট্রি যোগ হয়েছে।', rec_need:'সঠিক পরিমাণ দিন।',
     rec_every:'প্রতি মাসের', rec_day_suffix:'তারিখে',
@@ -3682,7 +3724,7 @@ const I18N = {
     limit_over:"Daily limit exceeded", limit_left:'You can still spend today: ', lbl_daily_limit:'Daily spending limit (Taka)',
     lbl_due:'Due date (optional)', dash_remind_heading:'Loan Reminders', rem_get:'to receive', rem_owe:'to pay back',
     rem_overdue:'days overdue', rem_today:'due today', rem_soon:'days left', rem_popup_title:'Loan due reminder',
-    settings_recurring:'Scheduled Transactions', recurring_note:"Set things that repeat every month (rent, salary, bills) once — they're added automatically on that date and time (right on time if the app is open, otherwise the next time you open it). (If the date and time have already passed this month when you set it, it starts next month.)",
+    settings_recurring:'Automation', recurring_note:"Set things that repeat every month (rent, salary, bills) once — they're added automatically on that date and time (right on time if the app is open, otherwise the next time you open it). (If the date and time have already passed this month when you set it, it starts next month.)",
     lbl_rec_type:'Type', lbl_rec_amount:'Amount (Taka)', lbl_rec_day:'Day of month (1–31)', lbl_rec_time:'Entry time', rec_auto_added:'Recurring entry added', lbl_rec_note:'Note (e.g. House rent)',
     btn_rec_add:'Add', rec_empty:'No recurring entries', rec_added:'Recurring entry added.', rec_need:'Enter a valid amount.',
     rec_every:'every month on day', rec_day_suffix:'',
@@ -3894,14 +3936,14 @@ function validateTxSet(list){
     if(x.type==='loan_repay_given') loan['loan_given|'+per] = (loan['loan_given|'+per]||0) - a;
     if(x.type==='loan_repay_taken') loan['loan_taken|'+per] = (loan['loan_taken|'+per]||0) - a;
   });
-  for(const k in acc) if(acc[k] < -0.005) return bn ? `"${k}" অ্যাকাউন্টে এর চেয়ে বেশি টাকা তোলা যাবে না (ঘাটতি ${fmt(-acc[k])})` : `"${k}" would go negative by ${fmt(-acc[k])}`;
+  for(const k in acc) if(acc[k] < -0.005 && !(window.ftOneTime && window.ftOneTime.isOT && window.ftOneTime.isOT(k))) return bn ? `"${k}" অ্যাকাউন্টে এর চেয়ে বেশি টাকা তোলা যাবে না (ঘাটতি ${fmt(-acc[k])})` : `"${k}" would go negative by ${fmt(-acc[k])}`;
   for(const k in loan) if(loan[k] < -0.005){
     const who = list.find(x=>String(x.person||'').trim().toLowerCase()===k.split('|')[1]);
     return bn ? `${who?who.person:''}-এর বাকির চেয়ে ${fmt(-loan[k])} বেশি ফেরত লেখা হয়েছে` : `Repayment exceeds the loan balance for ${who?who.person:''} by ${fmt(-loan[k])}`;
   }
   return '';
 }
-const BD_TZ = 'Asia/Dhaka';
+const BD_TZ = ftRegionTZ();
 function bdParts(){
   const d = new Date();
   const fmt = new Intl.DateTimeFormat('en-CA', {
@@ -4454,7 +4496,7 @@ function renderAccounts(){
   const accList = document.getElementById('accList');
   const entries = data.accounts.map(a=>[a, map[a]||0]);
   accList.innerHTML = entries.length ? entries.map(([a,v])=>
-    `<div class="person"><div>${esc(a)}${(window.ftOneTime&&ftOneTime.isOT(a))?` <small style="opacity:.65;font-weight:700">· ${currentLang==='bn'?'স্পেশাল ডে':'Special Day'}</small>`:''}</div><div><span class="tag ${v>=0?'get':'owe'}">${fmt(v)}</span></div></div>`
+    `<div class="person"><div>${esc(a)}${(window.ftOneTime&&ftOneTime.isOT(a))?` <small style="opacity:.65;font-weight:700">· ${currentLang==='bn'?'অন্যান্য খরচ':'Additional Expense'}</small>`:''}</div><div><span class="tag ${v>=0?'get':'owe'}">${fmt(v)}</span></div></div>`
   ).join('') : `<div class="empty">${t('empty_no_account')}</div>`;
 }
 function calcLoans(){
@@ -4706,7 +4748,7 @@ function txHtml(tx){
   return `<div class="txitem" data-g="${{deposit:'in',expense:'out',save_to_account:'sav',use_from_account:'sav'}[tx.type]||'loan'}">
     <div class="txleft">
       <div class="t1">${t(meta.label)}${sub ? ' · '+esc(sub) : ''}</div>
-      <div class="t2">${tx.date} ${tx.time}${tx.note ? ' · '+noteFmt(tx.note) : ''}${tx.due ? ' · '+mi('clock')+' '+tx.due : ''}${tx.fund ? ' · '+mi('bank')+' '+esc(tx.fund)+(currentLang==='bn'?' থেকে':'') : ''}</div>
+      <div class="t2">${tx.date} ${ftFmtHM(tx.time)}${tx.note ? ' · '+noteFmt(tx.note) : ''}${tx.due ? ' · '+mi('clock')+' '+tx.due : ''}${tx.fund ? ' · '+mi('bank')+' '+esc(tx.fund)+(currentLang==='bn'?' থেকে':'') : ''}</div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;">
       <div class="txamt ${posneg}">${sign}${fmt(tx.amount)}</div>
@@ -5715,7 +5757,7 @@ function recFromFill(){
   if(keep&&[...sel.options].some(o=>o.value===keep)) sel.value=keep;
   document.getElementById('recFromNote').textContent=bn?'নির্বাচিত ব্যালেন্সে টাকা কম থাকলে মূল ব্যালেন্স থেকে কাটা হবে।':'If the chosen balance is short, the main balance is used.';
 }
-function recTimeLbl(tm){ const p=String(tm||'').split(':'), h=+p[0], m=+p[1]; if(!isFinite(h)||!isFinite(m)) return ''; return ((h%12)||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM'); }
+function recTimeLbl(tm){ const p=String(tm||'').split(':'), h=+p[0], m=+p[1]; if(!isFinite(h)||!isFinite(m)) return ''; if(!ftH12()) return ftFmtHM(tm); return ((h%12)||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM'); }
 function nowHM(){ return nowTime(); }
 function effDay(day){
   const tp = todayStr().split('-').map(Number);
@@ -6567,7 +6609,7 @@ if(devUnlocked){
     const ov=document.getElementById('lockOverlay'); if(!ov) return;
     try{
       const now=new Date(), bn=bnLang();
-      const tm=new Intl.DateTimeFormat(bn?'bn-BD':'en-US',{timeZone:'Asia/Dhaka',hour:'numeric',minute:'2-digit',hour12:true}).format(now);
+      const tm=new Intl.DateTimeFormat(bn?'bn-BD':'en-US',{timeZone:'Asia/Dhaka',hour:'numeric',minute:'2-digit',hour12:ftH12()}).format(now);
       const dt=new Intl.DateTimeFormat(bn?'bn-BD':'en-GB',{timeZone:'Asia/Dhaka',weekday:'long',day:'numeric',month:'long'}).format(now);
       setT('lkTime',tm); setT('lkDate',dt);
     }catch(e){}
@@ -7384,7 +7426,7 @@ const addD=(s,n)=>{const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+
 const addM=s=>{const y=+s.slice(0,4),m=+s.slice(5,7),day=+s.slice(8),last=new Date(Date.UTC(y,m+1,0)).getUTCDate();return new Date(Date.UTC(y,m,Math.min(day,last))).toISOString().slice(0,10)};
 const step=(s,rep)=>rep==='daily'?addD(s,1):rep==='weekly'?addD(s,7):addM(s);
 const diff=(a,b)=>Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/864e5);
-const fT=t=>{ if(!t) return ''; const p=t.split(':').map(Number), h=p[0]; return dg((h%12||12)+':'+String(p[1]).padStart(2,'0')+' '+(h>=12?'PM':'AM')); };
+const fT=t=>{ if(!t) return ''; if(!ftH12()) return dg(ftFmtHM(t)); const p=t.split(':').map(Number), h=p[0]; return dg((h%12||12)+':'+String(p[1]).padStart(2,'0')+' '+(h>=12?'PM':'AM')); };
 function dLbl(d){
   const t=todayStr(); if(d===t) return L('আজ','Today'); if(d===addD(t,1)) return L('আগামীকাল','Tomorrow');
   if(d<t){ const n=diff(t,d); return L(dg(n)+' দিন দেরি',n+'d overdue'); }
@@ -7392,7 +7434,7 @@ function dLbl(d){
 }
 function nowLbl(){
   const d=new Date(), lo=bn()?'bn-BD':'en-GB';
-  return d.toLocaleDateString(lo,{timeZone:'Asia/Dhaka',weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+d.toLocaleTimeString(lo,{timeZone:'Asia/Dhaka',hour:'numeric',minute:'2-digit',hour12:true});
+  return d.toLocaleDateString(lo,{timeZone:'Asia/Dhaka',weekday:'long',day:'numeric',month:'long',year:'numeric'})+' · '+d.toLocaleTimeString(lo,{timeZone:'Asia/Dhaka',hour:'numeric',minute:'2-digit',hour12:ftH12()});
 }
 const sub=r=>{ const a=[dLbl(r.date)]; if(r.time) a.push(fT(r.time)); const k=KIND[r.kind]||KIND.other; a.push(L(k[2],k[3])); if(r.repeat&&r.repeat!=='none') a.push(L(REP[r.repeat][0],REP[r.repeat][1])); return a.join(' · '); };
 const cmp=(a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00'));
@@ -8919,6 +8961,8 @@ applyFeat();render();
 const RX=[
  [/থিম|theme/i,'অ্যাপের রঙ ও স্টাইল বেছে নিন','Pick your app colors & style','ব্যক্তিগতকরণ','Personalise'],
  [/ভাষা|language/i,'বাংলা বা English বেছে নিন','Switch between Bangla and English'],
+ [/টাইম জোন|time\s*zone/i,'দেশ অনুযায়ী সময়ের ফরম্যাট ও টাইমজোন','Time format & zone by country'],
+ [/অটোমেশন|automation/i,'প্রতি মাসের লেনদেন অটো যোগ হবে','Auto-add repeating transactions'],
  [/প্রোফাইল|profile/i,'নাম, ছবি ও ব্যক্তিগত তথ্য','Name, photo & personal info'],
  [/লোকাল ব্যাকআপ|local\s*backup/i,'এই ফোনে ডেটা ব্যাকআপ ও রিস্টোর','Back up & restore on this device','অ্যাকাউন্ট ও ডেটা','Account & data'],
  [/লগআউট|log\s*out|logout/i,'এই অ্যাকাউন্ট থেকে বের হন','Sign out of this account'],
@@ -11371,7 +11415,7 @@ var sec=document.getElementById('sec-settings'); if(!sec) return;
 var bl=function(b,e){ return '<span class="bn">'+b+'</span><span class="en">'+e+'</span>'; };
 var CATS=[
  ['invite','রেফার ও শেয়ার','Refer & Share',['inviteBox']],
- ['look','চেহারা ও ভাষা','Appearance & Language',['settings_theme','settings_lang']],
+ ['look','চেহারা ও ভাষা','Appearance & Language',['settings_theme','settings_lang','regBox']],
  ['acct','অ্যাকাউন্ট ও প্রোফাইল','Account & Profile',['settings_profile','bdSetBox']],
  ['money','আর্থিক ব্যবস্থাপনা','Finance & Budgeting',['curBox','settings_budget','settings_goal','periodSetBox','spSetBox','settings_recurring','payBox','qxBox']],
  ['remind','অ্যালার্ট ও রিমাইন্ডার','Alerts & Reminders',['rmBox','ntSetBox']],
@@ -12268,7 +12312,7 @@ build(); [600,1500,3200,6500].forEach(ms=>setTimeout(()=>build(),ms));
 /* ---------- side menu ---------- */
 const TABS=[
  ['everyday','প্রতিদিন','Everyday',[['dash','হোম','Home','home','#6366f1'],['add','যোগ করুন','Add entry','plus','#10b981'],['tx','লেনদেন','Transactions','svg:cg-txswap','#0ea5e9'],['hist','হিস্ট্রি','History','clock','#f59e0b'],['acc','একাউন্ট','Accounts','wallet','#14b8a6']]],
- ['money','অর্থ ও লক্ষ্য','Money & goals',[['loan','লোন','Loans','bank','#ef4444'],['challenge','চ্যালেঞ্জ','Challenges','svg:cg-trophy','#f59e0b'],['zakat','যাকাত','Zakat','coin','#22c55e'],['@onetime','স্পেশাল ডে','Special Day','svg:cg-sday','#ec4899']]],
+ ['money','অর্থ ও লক্ষ্য','Money & goals',[['loan','লোন','Loans','bank','#ef4444'],['challenge','চ্যালেঞ্জ','Challenges','svg:cg-trophy','#f59e0b'],['zakat','যাকাত','Zakat','coin','#22c55e'],['@onetime','অন্যান্য খরচ','Additional Expense','svg:cg-sday','#ec4899']]],
  ['insight','ইনসাইট','Insights',[['report','রিপোর্ট','Reports','bars','#6366f1'],['chat','AI চ্যাট','AI Chat','bot','#8b5cf6']]],
  ['social','কমিউনিটি ও যোগাযোগ','Community & contact',[['friends','বন্ধু','Friends','user','#0ea5e9'],['@inbox','মেসেজ','Messages','message','#10b981'],['profile','প্রোফাইল','Profile','user','#ec4899'],['@search','ইউজার খুঁজুন','Find users','search','#0ea5e9'],['@blood','ইমারজেন্সি হেল্প','Emergency help','drop','#e11d48'],['@homies','হোমি খুঁজুন','Find Homies','svg:hm-users','#f97316']]],
  ['tools','টুলস','Tools',[['@tour','ট্যুর বাজেট','Tour budget','bus','#f59e0b'],['notes','নোট ও টাস্ক','Notes & tasks','clipboard','#a78bfa'],['@planner','ক্যালেন্ডার','Calendar','svg:cg-cal','#14b8a6'],['@wishare','ওয়াইশেয়ার','WiShare','svg:ws-wifi','#2f6bff']]]
@@ -17234,13 +17278,85 @@ body.ftOtOpen #bottomNav{display:none!important}
 #ftOtOv .wCard{min-height:76px;line-height:1.3;flex-shrink:0}
 #ftOtOv .wCard b,#ftOtOv .wCard em{line-height:1.35}
 #ftOtOv .oTr,#ftOtOv .oBox,#ftOtOv .oTop5{flex-shrink:0}
+#ftOtOv .oNp{border:0;background:var(--gr);border-radius:30px;padding:18px;flex-shrink:0}
+#ftOtOv .oNp .npH{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+#ftOtOv .oNp .npH h4{margin:0;font-size:17px;font-weight:800}
+#ftOtOv .oNp .npH small{display:block;margin-top:3px;color:var(--muted);font-size:13px}
+#ftOtOv .oNp .npAct{display:flex;align-items:center;gap:8px;flex:none}
+#ftOtOv .oNp .npPen{width:36px;height:36px;border:0;border-radius:50%;background:var(--bg);color:var(--muted);display:grid;place-items:center;cursor:pointer}
+#ftOtOv .oNp .npPen.on{background:var(--grad,var(--primary));color:#fff}
+#ftOtOv .oNp .npClr{border:0;background:var(--bg);color:var(--muted);height:32px;padding:0 12px;border-radius:16px;font-weight:700;font-size:12px;cursor:pointer;flex:none}
+#ftOtOv .oNp .npTa{display:block;width:100%;box-sizing:border-box;margin-top:12px;min-height:96px;max-height:220px;resize:none;border:1.5px dashed rgba(128,128,128,.35);background:var(--bg);color:inherit;border-radius:18px;padding:12px 14px;font:inherit;font-size:15px;line-height:1.7;outline:none;background-image:repeating-linear-gradient(transparent,transparent 25.5px,rgba(128,128,128,.14) 26px)}
+#ftOtOv .oNp .npTa:focus{border-color:var(--primary)}
+#ftOtOv .oNp .npSave{display:block;width:100%;height:44px;margin-top:10px;border:0;border-radius:22px;background:var(--grad,var(--primary));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+#ftOtOv .oNp .npWrap{position:relative;margin-top:14px;max-width:100%;min-width:120px;min-height:80px;max-height:70vh;overflow:hidden;background:var(--bg);border-radius:20px;box-sizing:border-box}
+#ftOtOv .oNp .npGrid{height:100%;box-sizing:border-box;overflow:auto;padding:10px 10px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));grid-auto-rows:min-content;gap:8px;align-content:start}
+#ftOtOv .oNp .npIt{display:flex;align-items:center;min-width:0;background:var(--gr);border-radius:14px}
+#ftOtOv .oNp .npTg{flex:1;min-width:0;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:inherit;padding:10px 4px 10px 10px;text-align:left;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+#ftOtOv .oNp .npCk{flex:none;width:20px;height:20px;border-radius:7px;border:2px solid var(--muted);display:grid;place-items:center;font-size:13px;line-height:1;color:#fff}
+#ftOtOv .oNp .npTx{min-width:0;overflow-wrap:anywhere}
+#ftOtOv .oNp .npIt.done .npCk{background:#22c55e;border-color:#22c55e}
+#ftOtOv .oNp .npIt.done .npTx{text-decoration:line-through;opacity:.55}
+#ftOtOv .oNp .npX{flex:none;border:0;background:transparent;color:var(--muted);width:28px;height:36px;font-size:18px;cursor:pointer}
+#ftOtOv .oNp .npHd{position:absolute;right:0;bottom:0;width:30px;height:30px;touch-action:none;cursor:nwse-resize;background:linear-gradient(135deg,transparent 52%,var(--muted) 52%,var(--muted) 58%,transparent 58%,transparent 70%,var(--muted) 70%,var(--muted) 76%,transparent 76%)}
+#ftOtOv .npPv{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px;max-height:120px;overflow:auto}
+#ftOtOv .npPv span{background:var(--gr);border-radius:14px;padding:6px 12px;font-weight:700;font-size:13px}
+#ftOtOv .npEx{margin:8px 2px 10px;font-size:12.5px;color:var(--muted);line-height:1.5}
+#ftOtOv .oNp .npHint{margin-top:8px;font-size:12px;color:var(--muted)}
+
 @media (prefers-reduced-motion:reduce){#ftOtOv.on,#ftOtOv .oSh,#ftOtOv .oSp{animation:none}}
+/* ===== wallet manager (list / switch / delete) ===== */
+#ftOtOv .oSec{font-size:13px;margin:10px 4px 0}
+#ftOtOv .wMain{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:14px;border-radius:24px;background:color-mix(in srgb,var(--primary) 11%,var(--card));border:1.5px solid color-mix(in srgb,var(--primary) 45%,var(--border))}
+#ftOtOv .wMain .mbIc{flex:none;width:44px;height:44px;border-radius:14px;background:var(--grad,var(--primary));color:#fff;display:flex;align-items:center;justify-content:center}
+#ftOtOv .wMain .mbTx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#ftOtOv .wMain .mbTx small{font-size:12px;font-weight:700;color:var(--primary);line-height:1.5}
+#ftOtOv .wMain .mbTx b{font-size:16.5px;font-weight:800;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ftOtOv .wMain .mbTx em{font-style:normal;font-size:12px;color:var(--muted);line-height:1.5}
+#ftOtOv .wMain .mbBtn{flex:1 1 100%;display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border:0;border-radius:16px;background:var(--grad,var(--primary));color:#fff;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 12px 22px -14px var(--primary)}
+#ftOtOv .wMain .mbBtn:active{transform:scale(.98)}
+#ftOtOv .wItem{border:1.5px solid var(--border);background:var(--card);border-radius:26px;padding:14px;display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+#ftOtOv .wItem.cur{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 7%,var(--card))}
+#ftOtOv .wItem.cl{opacity:.85}
+#ftOtOv .wiHead{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#ftOtOv .wiIc{flex:none;width:46px;height:46px;border-radius:16px;background:color-mix(in srgb,var(--primary) 14%,var(--card));color:var(--primary);display:flex;align-items:center;justify-content:center}
+#ftOtOv .wItem.cl .wiIc{background:color-mix(in srgb,var(--text) 8%,var(--card));color:var(--muted)}
+#ftOtOv .wiTx{flex:1;min-width:0}
+#ftOtOv .wiTx b{display:block;font-size:16px;font-weight:800;line-height:1.55;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ftOtOv .wiTx small{display:block;font-size:12px;color:var(--muted);line-height:1.5}
+#ftOtOv .wiBal{flex:none;text-align:right}
+#ftOtOv .wiBal em{display:block;font-style:normal;font-size:17px;font-weight:800;line-height:1.5;color:var(--primary)}
+#ftOtOv .wItem.cl .wiBal em{color:var(--muted)}
+#ftOtOv .wiBal small{display:block;font-size:11.5px;color:var(--muted);line-height:1.4}
+#ftOtOv .wiBar{height:6px;border-radius:6px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:hidden}
+#ftOtOv .wiBar i{display:block;height:100%;border-radius:6px;background:var(--grad,var(--primary))}
+#ftOtOv .wiStat{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);line-height:1.5}
+#ftOtOv .wiStat b{color:var(--text)}
+#ftOtOv .wiPill{margin-left:auto;padding:3px 10px;border-radius:12px;font-size:11.5px;font-weight:800;line-height:1.5;background:color-mix(in srgb,#22c55e 15%,transparent);color:#16a34a}
+#ftOtOv .wiPill.on{background:var(--grad,var(--primary));color:#fff}
+#ftOtOv .wiPill.off{background:color-mix(in srgb,var(--text) 10%,transparent);color:var(--muted)}
+#ftOtOv .wiAct{display:flex;gap:10px}
+#ftOtOv .wiBtn{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 16px;border-radius:16px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:800;font-size:13.5px;cursor:pointer;line-height:1.3}
+#ftOtOv .wiBtn.pri{flex:1;border:0;background:var(--grad,var(--primary));color:#fff;box-shadow:0 12px 22px -14px var(--primary)}
+#ftOtOv .wiBtn.dg{flex:none;border-color:color-mix(in srgb,#ef4444 40%,var(--border));background:color-mix(in srgb,#ef4444 9%,var(--card));color:#ef4444}
+#ftOtOv .wiBtn:active{transform:scale(.97)}
+#ftOtOv .wBar{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px;border-radius:22px;border:1.5px solid var(--border);background:var(--card);flex-shrink:0}
+#ftOtOv .wBar.cur{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--card))}
+#ftOtOv .wbIc{flex:none;width:40px;height:40px;border-radius:13px;background:color-mix(in srgb,var(--primary) 14%,var(--card));color:var(--primary);display:flex;align-items:center;justify-content:center}
+#ftOtOv .wbTx{flex:1;min-width:0}
+#ftOtOv .wbTx small{display:block;font-size:11.5px;font-weight:700;color:var(--muted);line-height:1.5}
+#ftOtOv .wBar.cur .wbTx small{color:var(--primary)}
+#ftOtOv .wbTx b{display:block;font-size:15.5px;font-weight:800;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ftOtOv .wbBtn{flex:none;display:flex;align-items:center;gap:7px;height:42px;padding:0 14px;border-radius:15px;border:0;background:var(--grad,var(--primary));color:#fff;font-weight:800;font-size:13px;cursor:pointer}
+#ftOtOv .wbBtn:active{transform:scale(.96)}
+#ftOtOv .wbMain{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:46px;border-radius:16px;border:1.5px solid color-mix(in srgb,var(--primary) 50%,var(--border));background:transparent;color:var(--primary);font-weight:800;font-size:14px;cursor:pointer;flex-shrink:0}
+#ftOtOv .wbMain:active{transform:scale(.98)}
 </style>
 <script id="ftOtJs">
-/* ===== স্পেশাল ডে: একটি বিশেষ উপলক্ষ্যের জন্য মূল ব্যালেন্স থেকে আলাদা করা টাকা। খরচ হয় ওই হিসাব থেকে, বন্ধ করলে বাকি টাকা মূল ব্যালেন্সে ফেরত আসে ===== */
+/* ===== অন্যান্য খরচ: একটি বিশেষ উপলক্ষ্যের জন্য মূল ব্যালেন্স থেকে আলাদা করা টাকা। খরচ হয় ওই হিসাব থেকে, বন্ধ করলে বাকি টাকা মূল ব্যালেন্সে ফেরত আসে ===== */
 (function(){
 if(window.ftOneTime) return;
-var S={open:false,sel:'',tab:'home',sheet:false,closedOpen:false,ctx:null}, hP=false;
+var S={open:false,sel:'',tab:'home',page:'list',sheet:false,closedOpen:false,ctx:null}, hP=false;
 var EMO=['🎉','🌙','💍','🎂','✈️','🎁','🛍️','🏠','🎓','🏥'];
 var IC={
   back:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
@@ -17280,7 +17396,7 @@ function stats(o){
   led.sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
   return {put:r2(put), ret:r2(ret), spent:r2(spent), left:r2(put-ret-spent), cats:cats, led:led};
 }
-function heldTotal(){ var t=0; list().forEach(function(o){ if(isOpen(o)) t+=stats(o).left; }); return r2(t); }
+function heldTotal(){ var t=0; list().forEach(function(o){ if(isOpen(o)) t+=Math.max(0,stats(o).left); }); return r2(t); }
 function refresh(){ ['renderDash','renderAccounts','renderLoans','renderHistory'].forEach(function(f){ try{ if(typeof window[f]==='function') window[f](); }catch(e){} }); }
 function mkTx(type,amount,o){
   var x={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),type:type,amount:amount,category:null,source:null,due:null,person:null,account:null,fund:null,note:'',date:todayStr(),time:nowTime()};
@@ -17312,10 +17428,10 @@ function copyText(s){
 function vList(){
   var all=list().slice().sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
   var act=all.filter(isOpen), cls=all.filter(function(o){ return !isOpen(o); }), h='';
-  h+='<div class="oHero"><div class="ohTop"><span>'+L('মূল ব্যালেন্স','Main balance')+'</span></div><div class="ohBig">'+money(calcBalance())+'</div><div class="ohRow two" style="margin-top:14px"><div><small>'+L('স্পেশাল ডে-তে আলাদা','Set aside for Special Days')+'</small><b>'+money(heldTotal())+'</b></div><div><small>'+L('চালু হিসাব','Active accounts')+'</small><b style="color:#fff!important">'+act.length+'</b></div></div></div>';
+  h+='<div class="oHero"><div class="ohTop"><span>'+L('মূল ব্যালেন্স','Main balance')+'</span></div><div class="ohBig">'+money(calcBalance())+'</div><div class="ohRow two" style="margin-top:14px"><div><small>'+L('অন্যান্য খরচে আলাদা','Set aside for Additional Expenses')+'</small><b>'+money(heldTotal())+'</b></div><div><small>'+L('চালু হিসাব','Active accounts')+'</small><b style="color:#fff!important">'+act.length+'</b></div></div></div>';
   h+='<div class="oNote">'+IC.info+'<span>'+L('ঈদ, বিয়ে, জন্মদিন, ভ্রমণ বা যেকোনো বিশেষ দিনের জন্য আলাদা হিসাব রাখুন। হিসাব শুরু করা যায় দুইভাবে: নতুন ওপেনিং ব্যালেন্স দিয়ে, অথবা মূল ব্যালেন্স/ব্যাংক-একাউন্ট থেকে টাকা ট্রান্সফার করে। কাজ শেষে হিসাব বন্ধ করলে বাকি টাকা মূল ব্যালেন্সে ফিরে আসবে।','Keep a separate account for Eid, a wedding, a birthday, a trip or any special day. Start it two ways: with a new opening balance, or by transferring money from your main balance or a bank account. When you close it, whatever is left returns to your main balance.')+'</span></div>';
   if(!all.length){
-    return h+'<div class="oEmpty"><div class="oBig">🎁</div><b>'+L('এখনো কোনো স্পেশাল ডে নেই','No Special Day accounts yet')+'</b><p>'+L('একটি উপলক্ষ্যের নাম দিন, মূল ব্যালেন্স থেকে কত টাকা নেবেন ঠিক করুন, তারপর খরচ লিখতে থাকুন।','Name the occasion, choose how much to take from your main balance, then log expenses.')+'</p><button type="button" class="oBtn" data-a="new">'+L('নতুন হিসাব খুলুন','Open a new account')+'</button></div>';
+    return h+'<div class="oEmpty"><div class="oBig">🎁</div><b>'+L('এখনো কোনো অন্যান্য খরচ নেই','No Additional Expense accounts yet')+'</b><p>'+L('একটি উপলক্ষ্যের নাম দিন, মূল ব্যালেন্স থেকে কত টাকা নেবেন ঠিক করুন, তারপর খরচ লিখতে থাকুন।','Name the occasion, choose how much to take from your main balance, then log expenses.')+'</p><button type="button" class="oBtn" data-a="new">'+L('নতুন হিসাব খুলুন','Open a new account')+'</button></div>';
   }
   if(act.length){ h+='<div class="oSec"><span>'+L('চালু হিসাব','Active')+' ('+act.length+')</span></div>'; act.forEach(function(o){ h+=card(o); }); }
   else h+='<div class="oEmpty" style="padding:22px 20px"><b style="font-size:15px">'+L('এখন কোনো চালু হিসাব নেই','No active account')+'</b></div>';
@@ -17379,7 +17495,7 @@ function trendCard(s){
 function vDetail(o){
   var s=stats(o), open=isOpen(o), h='';
   var pct=s.put?Math.min(100,s.spent/s.put*100):0, cls=!open?' done':'';
-  h+='<div class="oHero'+cls+'"><div class="ohTop"><span>'+(open?L('হিসাবে বাকি আছে','Remaining in account'):L('মোট খরচ হয়েছে','Total spent'))+'</span>'+(open?'<span class="oTag">'+L('চালু','Active')+'</span>':'<span class="oTag">'+L('বন্ধ','Closed')+'</span>')+'</div>'
+  h+='<div class="oHero'+cls+'"><div class="ohTop"><span>'+(open?(s.left<-0.004?L('বকেয়া (Due)','Due'):L('হিসাবে বাকি আছে','Remaining in account')):L('মোট খরচ হয়েছে','Total spent'))+'</span>'+(open?'<span class="oTag">'+L('চালু','Active')+'</span>':'<span class="oTag">'+L('বন্ধ','Closed')+'</span>')+'</div>'
     +'<div class="ohBig">'+money(open?s.left:s.spent)+'</div>'
     +'<div class="oBar'+(pct>80?' warn':'')+'"><i style="width:'+pct.toFixed(1)+'%"></i></div>'
     +'<div class="ohRow"><div><small>'+L('জমা','Put in')+'</small><b>'+money(s.put)+'</b></div><div><small>'+L('খরচ','Spent')+'</small><b>'+money(s.spent)+'</b></div><div><small>'+L('ফেরত','Returned')+'</small><b>'+money(s.ret)+'</b></div></div>'
@@ -17446,10 +17562,10 @@ function greet(){
 function genLabel(tx){ try{ var m=TYPE_META[tx.type], tl=m?t(m.label):tx.type, ex=tx.category||tx.person||tx.source||tx.account||''; return ex?tl+' · '+ex:tl; }catch(e){ return tx.type; } }
 function wallets(){ var all=list().slice().sort(function(a,b){ return (b.ts||0)-(a.ts||0); }); return all.filter(isOpen).concat(all.filter(function(o){ return !isOpen(o); })); }
 function heroSlides(w){
-  var s1='<div class="hSl"><div class="oHero"><div class="hhTop"><span class="hhLb">'+L('মোট ব্যালেন্স','Total Balance')+'</span><span class="hhGr">'+greet()+'</span></div><div class="hhNm">'+esc(w.name)+'</div><div class="ohBig">'+money(w.bal)+'</div>'
+  var s1='<div class="hSl"><div class="oHero"><div class="hhTop"><span class="hhLb">'+(w.bal<-0.004?L('বকেয়া (Due)','Due'):L('মোট ব্যালেন্স','Total Balance'))+'</span><span class="hhGr">'+greet()+'</span></div><div class="hhNm">'+esc(w.name)+'</div><div class="ohBig">'+money(w.bal)+'</div>'
     +'<div class="hhRow"><div><small>'+L('জমা','Income')+'</small><b>'+money(w.inc)+'</b></div><div><small>'+L('খরচ','Expense')+'</small><b>'+money(w.exp)+'</b></div></div></div></div>';
   var tot=0, held=0, ret=0, putT=0; list().forEach(function(o){ var st=stats(o); tot+=st.spent; ret+=st.ret; putT+=st.put; if(isOpen(o)) held+=st.left; });
-  var s2='<div class="hSl"><div class="oHero"><div class="hhTop"><span class="hhLb">'+L('সব স্পেশাল ডে একসাথে','All Special Days')+'</span><span class="hhGr">'+greet()+'</span></div><div class="hhNm">'+L('এখন সব ওয়ালেটে বাকি','Left in all wallets')+'</div><div class="ohBig">'+money(held)+'</div>'
+  var s2='<div class="hSl"><div class="oHero"><div class="hhTop"><span class="hhLb">'+L('সব অন্যান্য খরচ একসাথে','All Additional Expenses')+'</span><span class="hhGr">'+greet()+'</span></div><div class="hhNm">'+L('এখন সব ওয়ালেটে বাকি','Left in all wallets')+'</div><div class="ohBig">'+money(held)+'</div>'
     +'<div class="hhRow"><div><small>'+L('মোট জমা','Total put in')+'</small><b>'+money(putT)+'</b></div><div><small>'+L('মোট খরচ','Total spent')+'</small><b>'+money(tot)+'</b></div></div></div></div>';
   return '<div class="hCar" id="hCar">'+s1+s2+'</div><div class="hDots" id="hDots"><i class="on"></i><i></i></div>';
 }
@@ -17462,23 +17578,78 @@ function topCard(w){
   var arr=w.led.slice().sort(function(a,b){ return b.amount-a.amount; }).slice(0,5); if(!arr.length) return '';
   return '<div class="oTop5"><div class="tpH"><i>'+XN.trend+'</i>'+L('সর্বোচ্চ খরচ','Top Expenses')+'</div>'+arr.map(function(x){ return '<div class="tpR"><span><b>'+esc(x.note||x.category||L('খরচ','Expense'))+'</b><small>'+esc(x.category||'')+' · '+fdate(x.date)+'</small></span><em>'+money(x.amount)+'</em></div>'; }).join('')+'</div>';
 }
+
+/* ---- অন্যান্য খরচ: নোটপ্যাড → টাস্ক বক্স (কেনাকাটার তালিকা) ---- */
+function npItems(o){ if(!o) return []; if(!Array.isArray(o.shop)) o.shop=[]; return o.shop; }
+function noteCard(w){
+  var o=w.o; if(!o) return '';
+  var it=npItems(o), dn=it.filter(function(x){ return x.d; }).length, left=it.length-dn;
+  var sub=it.length?L('মোট '+it.length+' · বাকি '+left+' · কেনা '+dn,'Total '+it.length+' · Left '+left+' · Bought '+dn):L('এখানে লিখে সেভ করুন','Write here and save');
+  var h='<div class="oNp"><div class="npH"><div><h4>'+L('কেনাকাটার নোট','Shopping note')+'</h4><small id="npSub">'+sub+'</small></div>'
+    +'<div class="npAct">'+(dn?'<button type="button" class="npClr" data-a="nclr">'+L('কেনাগুলো মুছুন','Clear bought')+'</button>':'')+'<button type="button" class="npPen'+(S.npOpen?' on':'')+'" data-a="nedit" aria-label="Edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></div>'
+    +(S.npOpen?'<div class="npEd"><textarea id="oNoteTa" class="npTa" rows="4" placeholder="'+esc(L('প্রতি লাইনে একটি করে লিখুন\nডাল\nচাল\nপেঁয়াজ','One item per line\nDal\nRice\nOnions'))+'">'+esc(S.draft||'')+'</textarea>'
+    +'<button type="button" class="npSave" data-a="nsave">'+L('সেভ করুন','Save')+'</button></div>':'');
+  if(it.length){
+    var sorted=it.slice().sort(function(a,b){ return (a.d?1:0)-(b.d?1:0); });
+    var st=''; if(o.shopW) st+='width:'+Math.round(o.shopW)+'px;'; if(o.shopH) st+='height:'+Math.round(o.shopH)+'px;';
+    h+='<div class="npWrap" id="npWrap" style="'+st+'"><div class="npGrid">'
+      +sorted.map(function(x){ return '<div class="npIt'+(x.d?' done':'')+'"><button type="button" class="npTg" data-a="ntog" data-id="'+esc(x.id)+'"><span class="npCk">'+(x.d?'✓':'')+'</span><span class="npTx">'+esc(x.t)+'</span></button><button type="button" class="npX" data-a="ndel" data-id="'+esc(x.id)+'" aria-label="Delete">×</button></div>'; }).join('')
+      +'</div><div class="npHd" id="npHd" title="'+L('টেনে বক্স ছোট-বড় করুন','Drag to resize')+'"></div></div>'
+      +'<div class="npHint">'+L('আইটেমে ট্যাপ করলে "কেনা হয়েছে" হবে · কোণা টেনে বক্স ছোট-বড় করুন','Tap an item to mark bought · drag the corner to resize')+'</div>';
+  }
+  return h+'</div>';
+}
+function npSave(){
+  var o=S.sel?get(S.sel):null, ta=$('oNoteTa'); if(!o||!ta) return;
+  var parts=ta.value.split(/[\n,،;]+/).map(function(x){ return x.trim(); }).filter(Boolean);
+  if(!parts.length){ say(L('কিছু লিখুন','Write something first')); return; }
+  S.draft=ta.value; S.pend=parts;
+  showSheet('<h3>'+L('এগুলো কীভাবে সেভ হবে?','How should these be saved?')+'</h3><p class="oSub">'+L(parts.length+'টি আইটেম',parts.length+' items')+'</p>'
+    +'<div class="npPv">'+parts.map(function(x){ return '<span>'+esc(x)+'</span>'; }).join('')+'</div>'
+    +'<button type="button" class="oBtn" data-a="npBoth">'+L('টাস্ক + খাত (ক্যাটাগরি) হিসাবেও','Task + expense category')+'</button>'
+    +'<p class="npEx">'+L('খরচ যোগ করার সময় "কীসের খরচ (খাত)" লিখলে এগুলো সাজেস্ট করবে।','They will be suggested when you type the category in Add expense.')+'</p>'
+    +'<button type="button" class="oGhost" style="width:100%;margin-top:6px" data-a="npTask">'+L('শুধু টাস্ক হিসাবে','Task only')+'</button>');
+}
+function npCommit(asCat){
+  var o=S.sel?get(S.sel):null, parts=S.pend||[]; if(!o||!parts.length){ closeSheet(); return; }
+  var it=npItems(o); parts.forEach(function(t,i){ it.push({id:'n'+Date.now().toString(36)+i+Math.random().toString(36).slice(2,5),t:t,d:0}); });
+  if(asCat){ if(!Array.isArray(o.cats)) o.cats=[]; parts.forEach(function(t){ if(!o.cats.some(function(c){ return c.toLowerCase()===t.toLowerCase(); })) o.cats.push(t); }); }
+  S.pend=null; S.draft=''; S.npOpen=false; saveData(); closeSheet(); render();
+  say(asCat?L('টাস্ক ও খাত হিসাবে সেভ হয়েছে','Saved as tasks and categories'):L('টাস্ক হিসাবে সেভ হয়েছে','Saved as tasks'));
+}
+function catCands(o){
+  var out=[], seen={}; var add=function(c){ var k=String(c||'').trim(); if(!k||seen[k.toLowerCase()]) return; seen[k.toLowerCase()]=1; out.push(k); };
+  (o&&Array.isArray(o.cats)?o.cats:[]).forEach(add);
+  try{ var st=stats(o); Object.keys(st.cats||{}).sort(function(x,y){ return st.cats[y]-st.cats[x]; }).forEach(add); }catch(e){}
+  return out;
+}
+function catChipHtml(a){ return a.map(function(c){ return '<button type="button" data-a="cpick" data-v="'+esc(c)+'">'+esc(c)+'</button>'; }).join(''); }
+function npInit(o){
+  var ta=$('oNoteTa'); if(ta){ ta.addEventListener('input',function(){ S.draft=ta.value; ta.style.height='auto'; ta.style.height=Math.min(220,Math.max(96,ta.scrollHeight))+'px'; }); }
+  var hd=$('npHd'), bx=$('npWrap'); if(!hd||!bx||!o) return;
+  var sx,sy,sw,sh,on=false;
+  hd.addEventListener('pointerdown',function(e){ on=true; sx=e.clientX; sy=e.clientY; sw=bx.offsetWidth; sh=bx.offsetHeight; try{ hd.setPointerCapture(e.pointerId); }catch(_){} e.preventDefault(); });
+  hd.addEventListener('pointermove',function(e){ if(!on) return; var mw=bx.parentNode.clientWidth-36; bx.style.width=Math.min(mw,Math.max(120,sw+e.clientX-sx))+'px'; bx.style.height=Math.max(80,sh+e.clientY-sy)+'px'; });
+  var end=function(){ if(!on) return; on=false; o.shopW=bx.offsetWidth; o.shopH=bx.offsetHeight; saveData(); };
+  hd.addEventListener('pointerup',end); hd.addEventListener('pointercancel',end);
+}
 function vHome(w){
-  var h=heroSlides(w)+walletRow();
-  if(w.exp>0) h+=trendCard({led:w.led});
+  var h=heroSlides(w)+walletBar(w);
+  h+=noteCard(w);
   h+=topCard(w);
   if(!w.o&&!list().length) h+='<div class="oNote">'+IC.info+'<span>'+L('ঈদ, বিয়ে, জন্মদিন বা ভ্রমণের জন্য ডেমো/আলাদা ব্যালেন্স দিয়ে নতুন ওয়ালেট খুলুন। শেষে সেটেলমেন্ট করলে বাকি টাকা মূল ব্যালেন্সে যোগ হবে।','Open a wallet for Eid, a wedding, a birthday or a trip with a demo or set-aside balance. On settlement, whatever is left is added to your main balance.')+'</span></div>';
   return h;
 }
 function txRowAcc(tx,first,open){
   var kind=tx.type==='save_to_account'?'in':tx.type==='use_from_account'?'back':'out', sym=kind==='in'?'↓':kind==='back'?'↑':'−';
-  return '<div class="oLed"><span class="olDot '+kind+'">'+sym+'</span><span class="olTx"><b>'+esc(ledLabel(tx,first))+'</b><small>'+(tx.time?esc(tx.time)+' · ':'')+esc(tx.note||'')+'</small></span><span class="olAmt '+kind+'">'+(kind==='out'?'−':'+')+money(tx.amount)+'</span>'
+  return '<div class="oLed"><span class="olDot '+kind+'">'+sym+'</span><span class="olTx"><b>'+esc(ledLabel(tx,first))+'</b><small>'+(tx.time?esc(ftFmtHM(tx.time))+' · ':'')+esc(tx.note||'')+'</small></span><span class="olAmt '+kind+'">'+(kind==='out'?'−':'+')+money(tx.amount)+'</span>'
     +(open&&kind==='out'?'<button type="button" class="olDel" data-a="del" data-id="'+esc(tx.id)+'" aria-label="Delete">'+IC.trash+'</button>':'')+'</div>';
 }
 function vTx(w){
   var rows=[], h='';
   if(w.o){ var firstId=''; w.s.led.forEach(function(x){ if(!firstId&&x.type==='save_to_account') firstId=x.id; }); var op=isOpen(w.o);
     w.s.led.slice().reverse().forEach(function(x){ rows.push({d:x.date,h:txRowAcc(x,x.id===firstId,op)}); }); }
-  else w.d.all.forEach(function(x){ var inn=TYPE_META[x.type].sign>0; rows.push({d:x.date,h:'<div class="oLed"><span class="olDot '+(inn?'in':'out')+'">'+(inn?'↓':'−')+'</span><span class="olTx"><b>'+esc(genLabel(x))+'</b><small>'+(x.time?esc(x.time)+' · ':'')+esc(x.note||'')+'</small></span><span class="olAmt '+(inn?'in':'out')+'">'+(inn?'+':'−')+money(x.amount)+'</span></div>'}); });
+  else w.d.all.forEach(function(x){ var inn=TYPE_META[x.type].sign>0; rows.push({d:x.date,h:'<div class="oLed"><span class="olDot '+(inn?'in':'out')+'">'+(inn?'↓':'−')+'</span><span class="olTx"><b>'+esc(genLabel(x))+'</b><small>'+(x.time?esc(ftFmtHM(x.time))+' · ':'')+esc(x.note||'')+'</small></span><span class="olAmt '+(inn?'in':'out')+'">'+(inn?'+':'−')+money(x.amount)+'</span></div>'}); });
   if(!rows.length) return '<div class="oEmpty"><b>'+L('কোনো লেনদেন নেই','No transactions')+'</b></div>';
   var last='', box='';
   rows.forEach(function(r){ if(r.d!==last){ if(box) h+='<div class="oBox flush">'+box+'</div>'; box=''; last=r.d; h+='<div class="oDay">'+esc(wkd(r.d))+', '+fdate(r.d)+'</div>'; } box+=r.h; });
@@ -17512,7 +17683,7 @@ function vSe(w){
   h+='<div class="oBox"><h4>'+L('মোট সেটেলমেন্ট','Total Settlement')+' · '+esc(o.name)+'</h4>'
     +'<div class="sRow"><span>'+L('মোট জমা','Total put in')+'</span><b>'+money(s.put)+'</b></div><div class="sRow"><span>'+L('মোট খরচ','Total spent')+'</span><b style="color:#ef4444">−'+money(s.spent)+'</b></div><div class="sRow"><span>'+L('মূল ব্যালেন্সে ফেরত নিয়েছেন','Already returned')+'</span><b style="color:#f59e0b">−'+money(s.ret)+'</b></div>'
     +'<div class="sRow big"><span>'+(op?L('বাকি','Left'):L('বাকি ছিল','Left'))+'</span><b>'+money(op?s.left:0)+'</b></div>'
-    +(op?(s.left>0.004?'<div class="sNote">'+L('সেটেলমেন্ট করলে '+money(s.left)+' মূল ব্যালেন্সে যোগ হবে।','Settling adds '+money(s.left)+' to your main balance.')+'</div>':'<div class="sNote z">'+L('বাকি টাকা নেই, তাই মূল ব্যালেন্সে কিছু যোগ হবে না। শুধু হিসাব বন্ধ হবে।','Nothing is left, so nothing is added to your main balance. The wallet will just close.')+'</div>'):'<div class="sNote z">'+L('এই হিসাব '+fdate(o.closedAt)+' তারিখে বন্ধ হয়েছে।','Closed on '+fdate(o.closedAt)+'.')+'</div>')+'</div>';
+    +(op&&s.left<-0.004?'<div class="sNote">'+L('সেটেলমেন্ট করলে '+money(-s.left)+' বকেয়া মূল অ্যাপে "'+o.name+' (due)" নামে ঋণ হিসাবে যোগ হবে।','Settling adds '+money(-s.left)+' due as a loan named "'+o.name+' (due)" in your main Loans.')+'</div>':op?(s.left>0.004?'<div class="sNote">'+L('সেটেলমেন্ট করলে '+money(s.left)+' মূল ব্যালেন্সে যোগ হবে।','Settling adds '+money(s.left)+' to your main balance.')+'</div>':'<div class="sNote z">'+L('বাকি টাকা নেই, তাই মূল ব্যালেন্সে কিছু যোগ হবে না। শুধু হিসাব বন্ধ হবে।','Nothing is left, so nothing is added to your main balance. The wallet will just close.')+'</div>'):'<div class="sNote z">'+L('এই হিসাব '+fdate(o.closedAt)+' তারিখে বন্ধ হয়েছে।','Closed on '+fdate(o.closedAt)+'.')+'</div>')+'</div>';
   if(ks.length) h+='<div class="oBox"><h4>'+L('খাত অনুযায়ী','By category')+'</h4>'+ks.map(function(k){ return '<div class="sRow"><span>'+esc(k)+'</span><b>'+money(w.cats[k])+'</b></div>'; }).join('')+'</div>';
   if(op) h+='<div class="sBtns"><div class="oBtns"><button type="button" class="sBtn" data-a="top">'+L('টাকা যোগ','Add money')+'</button><button type="button" class="sBtn" data-a="ret">'+L('কিছু ফেরত','Return some')+'</button></div><button type="button" class="sBtn red" data-a="close">'+L('সেটেলমেন্ট করুন','Settle & close')+'</button><button type="button" class="sBtn dk" data-a="print">'+XN.print+L('প্রিন্ট করুন','Print')+'</button></div>';
   else h+='<div class="sBtns"><button type="button" class="sBtn" data-a="reopen">'+L('আবার চালু করুন','Reopen')+'</button><div class="oBtns"><button type="button" class="sBtn" data-a="copy">'+IC.copy+L('কপি','Copy')+'</button><button type="button" class="sBtn dk" data-a="print">'+XN.print+L('প্রিন্ট','Print')+'</button></div></div>';
@@ -17522,45 +17693,138 @@ function vSe(w){
 function printDoc(title,body){
   var f=document.createElement('iframe'); f.setAttribute('aria-hidden','true'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0';
   document.body.appendChild(f); var d=f.contentWindow.document; d.open();
-  d.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{margin:14mm}body{font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif;color:#111;font-size:13px}h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 6px}p.m{color:#666;margin:0 0 14px}table{width:100%;border-collapse:collapse}td,th{padding:7px 8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f3f3;font-size:12px}td.r,th.r{text-align:right}.tot td{font-weight:800;border-top:2px solid #111}.g{color:#16a34a}.rd{color:#dc2626}.f{margin-top:22px;color:#888;font-size:11px}</style></head><body>'+body+'</body></html>');
+  d.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{margin:14mm}body{font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif;color:#111;font-size:13px}h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 6px}p.m{color:#666;margin:0 0 14px}table{width:100%;border-collapse:collapse}td,th{padding:7px 8px;border-bottom:1px solid #ddd;text-align:left}th{background:#f3f3f3;font-size:12px}td.r,th.r{text-align:right}.tot td{font-weight:800;border-top:2px solid #111}.g{color:#16a34a}.rd{color:#dc2626}.f{margin-top:22px;color:#888;font-size:11px}.brand{font-size:30px;font-weight:900;letter-spacing:-.5px;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:14px}.hd{display:flex;justify-content:space-between;gap:12px;margin-bottom:16px}.hd small{display:block;color:#777;font-size:11px;text-transform:uppercase;letter-spacing:.5px}.hd b{font-size:17px}.hd .rt{text-align:right}table.pl td.q,table.pl th.q{text-align:center;width:22%}.dt{white-space:nowrap;font-size:12px;color:#444}th.dt{text-align:left}.sm{margin-top:18px;width:60%;margin-left:auto}.nt{color:#777;font-size:11px;margin-top:2px}</style></head><body>'+body+'</body></html>');
   d.close();
   setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ say(L('প্রিন্ট করা যায়নি','Could not print')); } setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); },3000); },350);
 }
 function printSummary(o){
   var now=fdate(todayStr())+' '+nowTime(), b='';
-  if(o){ var s=stats(o), cats=s.cats, ks=Object.keys(cats).sort(function(a,c){ return cats[c]-cats[a]; }), first='';
-    s.led.forEach(function(x){ if(!first&&x.type==='save_to_account') first=x.id; });
-    b+='<h1>'+esc(o.name)+'</h1><p class="m">'+L('সেটেলমেন্ট রিপোর্ট','Settlement report')+' · '+(isOpen(o)?L('চালু, শুরু ','Active, opened ')+fdate(o.opened):L('বন্ধ ','Closed ')+fdate(o.closedAt))+' · '+L('প্রিন্ট: ','Printed: ')+now+'</p>';
-    b+='<table><tr><td>'+L('মোট জমা','Total put in')+'</td><td class="r">'+money(s.put)+'</td></tr><tr><td>'+L('মোট খরচ','Total spent')+'</td><td class="r rd">'+money(s.spent)+'</td></tr><tr><td>'+L('ফেরত নেওয়া','Returned')+'</td><td class="r">'+money(s.ret)+'</td></tr><tr class="tot"><td>'+L('বাকি','Left')+'</td><td class="r g">'+money(isOpen(o)?s.left:0)+'</td></tr></table>';
-    if(ks.length){ b+='<h2>'+L('খাত অনুযায়ী খরচ','Spending by category')+'</h2><table>'+ks.map(function(k){ return '<tr><td>'+esc(k)+'</td><td class="r">'+money(cats[k])+'</td></tr>'; }).join('')+'</table>'; }
-    b+='<h2>'+L('লেনদেন','Transactions')+'</h2><table><tr><th>'+L('তারিখ','Date')+'</th><th>'+L('বিবরণ','Details')+'</th><th class="r">'+L('টাকা','Amount')+'</th></tr>'
-      +s.led.map(function(x){ var neg=x.type!=='save_to_account'&&x.type!=='use_from_account'||false, sgn=x.type==='save_to_account'?'+':x.type==='use_from_account'?'−':'−'; return '<tr><td>'+fdate(x.date)+' '+esc(x.time||'')+'</td><td>'+esc(ledLabel(x,x.id===first))+(x.note?' — '+esc(x.note):'')+'</td><td class="r">'+sgn+money(x.amount)+'</td></tr>'; }).join('')+'</table>';
+  if(o){ var s=stats(o), rowsH='', n=0, tot=0;
+    s.led.forEach(function(x){ if(x.type==='save_to_account'||x.type==='use_from_account') return; n++; tot+=x.amount;
+      rowsH+='<tr><td>'+esc(x.category||x.note||L('খরচ','Expense'))+(x.note&&x.category?'<div class="nt">'+esc(x.note)+'</div>':'')+'</td><td class="q">'+esc(x.qty||'-')+'</td><td class="dt">'+fdate(x.date)+(x.time?'<br>'+esc(ftFmtHM(x.time)):'')+'</td><td class="r">'+money(x.amount)+'</td></tr>'; });
+    b+='<div class="brand">Finverse</div><div class="hd"><div><small>'+L('হিসাব','Purpose')+'</small><b>'+esc(o.name)+'</b></div><div class="rt"><small>'+L('তারিখ','Date')+'</small><b>'+fdate(todayStr())+'</b></div></div>';
+    b+='<table class="pl"><tr><th>'+L('পণ্যের নাম','Product Name')+'</th><th class="q">'+L('পরিমাণ','Qty')+'</th><th class="dt">'+L('তারিখ ও সময়','Date & Time')+'</th><th class="r">'+L('মূল্য','Price')+'</th></tr>'
+      +(rowsH||'<tr><td colspan="4" style="text-align:center;color:#888">'+L('কোনো খরচ নেই','No expenses')+'</td></tr>')
+      +'<tr class="tot"><td colspan="3">'+L('মোট যোগফল','Total')+'</td><td class="r">'+money(tot)+'</td></tr></table>';
+    var lf=s.left, dueP=lf<-0.004;
+    b+='<table class="sm"><tr><td>'+L('মোট জমা হয়েছে','Total deposited')+'</td><td class="r">'+money(s.put)+'</td></tr>'
+      +'<tr><td>'+L('মোট খরচ হয়েছে','Total spent')+'</td><td class="r rd">'+money(s.spent)+'</td></tr>'
+      +(s.ret>0.004?'<tr><td>'+L('মূল ব্যালেন্সে ফেরত','Returned to main')+'</td><td class="r">'+money(s.ret)+'</td></tr>':'')
+      +'<tr class="tot"><td>'+(dueP?L('বকেয়া (Due)','Due'):L('বাকি আছে','Remaining'))+'</td><td class="r '+(dueP?'rd':'g')+'">'+money(dueP?-lf:(isOpen(o)?lf:0))+'</td></tr></table>';
   }else{
     var tH=0, rows='';
     wallets().forEach(function(w){ var st=stats(w), op=isOpen(w); if(op) tH+=st.left; rows+='<tr><td>'+esc(w.name)+'</td><td>'+(op?L('চালু','Active'):L('বন্ধ','Closed'))+'</td><td class="r">'+money(st.put)+'</td><td class="r">'+money(st.spent)+'</td><td class="r">'+money(st.ret)+'</td><td class="r">'+money(op?st.left:0)+'</td></tr>'; });
-    b+='<h1>'+L('স্পেশাল ডে — মোট সেটেলমেন্ট','Special Day — Total Settlement')+'</h1><p class="m">'+L('প্রিন্ট: ','Printed: ')+now+' · '+L('মূল ব্যালেন্স ','Main balance ')+money(calcBalance())+'</p>'
+    b+='<h1>'+L('অন্যান্য খরচ — মোট সেটেলমেন্ট','Additional Expense — Total Settlement')+'</h1><p class="m">'+L('প্রিন্ট: ','Printed: ')+now+' · '+L('মূল ব্যালেন্স ','Main balance ')+money(calcBalance())+'</p>'
       +'<table><tr><th>'+L('ওয়ালেট','Wallet')+'</th><th>'+L('অবস্থা','Status')+'</th><th class="r">'+L('জমা','In')+'</th><th class="r">'+L('খরচ','Spent')+'</th><th class="r">'+L('ফেরত','Returned')+'</th><th class="r">'+L('বাকি','Left')+'</th></tr>'+rows+'<tr class="tot"><td colspan="5">'+L('সেটেল করলে মূল ব্যালেন্সে ফিরবে','Returns to main on settlement')+'</td><td class="r g">'+money(tH)+'</td></tr></table>';
   }
-  b+='<p class="f">Finverse</p>';
-  printDoc((o?o.name:L('স্পেশাল ডে','Special Day'))+' — '+L('সেটেলমেন্ট','Settlement'),b);
+  if(!o) b+='<p class="f">Finverse</p>';
+  printDoc('Finverse — '+(o?o.name:L('অন্যান্য খরচ','Additional Expense')),b);
+}
+/* ---- wallet manager: list / switch / back to main / delete ---- */
+var XS={
+  swap:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h13"/><path d="m17 20 4-4-4-4"/><path d="M21 16H8"/></svg>',
+  back:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
+  check:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+  list:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="6" rx="2"/><rect x="3.5" y="14" width="17" height="6" rx="2"/></svg>'
+};
+/* the wallet the user switched into: it stays the main wallet until they go back */
+function curId(){ var id=(typeof data!=='undefined'&&data)?data.otActive:''; var o=id?get(id):null; return (o&&isOpen(o))?o.id:''; }
+function setCur(id){ if(!data) return; if(id) data.otActive=id; else delete data.otActive; saveData(); }
+function wItem(o){
+  var s=stats(o), op=isOpen(o), cur=curId()===o.id, pct=s.put?Math.min(100,s.spent/s.put*100):0, id=esc(o.id);
+  var act=(op&&!cur)?'switch':'wsel';
+  var pill=cur?'<span class="wiPill on">'+L('মূল ওয়ালেট','Main wallet')+'</span>':(op?'<span class="wiPill">'+L('চালু','Active')+'</span>':'<span class="wiPill off">'+L('বন্ধ','Closed')+'</span>');
+  var sub=op?(L('শুরু ','Opened ')+fdate(o.opened)):(L('বন্ধ ','Closed ')+fdate(o.closedAt));
+  var primary=op?(cur?'<button type="button" class="wiBtn pri" data-a="wsel" data-id="'+id+'" data-go="home">'+XS.check+L('খুলুন','Open')+'</button>'
+                    :'<button type="button" class="wiBtn pri" data-a="switch" data-id="'+id+'">'+XS.swap+L('ওয়ালেট সুইচ করুন','Switch wallet')+'</button>')
+                :'<button type="button" class="wiBtn pri" data-a="wsel" data-id="'+id+'" data-go="home">'+XS.eye+L('দেখুন','View')+'</button>';
+  return '<div class="wItem'+(cur?' cur':'')+(op?'':' cl')+'">'
+    +'<button type="button" class="wiHead" data-a="'+act+'" data-id="'+id+'" data-go="home"><i class="wiIc">'+XT.wallet+'</i>'
+    +'<span class="wiTx"><b>'+esc(o.name)+'</b><small>'+sub+'</small></span>'
+    +'<span class="wiBal"><em>'+money(op?s.left:0)+'</em><small>'+L('বাকি','Left')+'</small></span></button>'
+    +'<div class="wiBar"><i style="width:'+pct.toFixed(1)+'%"></i></div>'
+    +'<div class="wiStat"><span>'+L('জমা ','In ')+'<b>'+money(s.put)+'</b></span><span>'+L('খরচ ','Spent ')+'<b>'+money(s.spent)+'</b></span>'+pill+'</div>'
+    +'<div class="wiAct">'+primary+'<button type="button" class="wiBtn dg" data-a="wdel" data-id="'+id+'" aria-label="Delete">'+XS.trash+L('মুছুন','Delete')+'</button></div></div>';
+}
+function vWallets(){
+  var ws=wallets(), cur=curId(), act=ws.filter(isOpen), cls=ws.filter(function(o){ return !isOpen(o); }), held=0, h='';
+  act.forEach(function(o){ held+=stats(o).left; });
+  h+='<div class="oHero"><div class="hhTop"><span class="hhLb">'+L('মূল ব্যালেন্স','Main balance')+'</span><span class="hhGr">'+greet()+'</span></div><div class="ohBig">'+money(calcBalance())+'</div>'
+    +'<div class="hhRow"><div><small>'+L('ওয়ালেটে আলাদা','Held in wallets')+'</small><b>'+money(held)+'</b></div><div><small>'+L('মোট ওয়ালেট','Wallets')+'</small><b style="color:#fff!important">'+ws.length+'</b></div></div></div>';
+  if(cur){ var co=get(cur);
+    h+='<div class="wMain"><span class="mbIc">'+XT.wallet+'</span><span class="mbTx"><small>'+L('এখন মূল ওয়ালেট','Current main wallet')+'</small><b>'+esc(co.name)+'</b><em>'+L('অ্যাপ খুললেই এই ওয়ালেট সরাসরি খুলবে','The app opens straight into this wallet')+'</em></span>'
+      +'<button type="button" class="mbBtn" data-a="tomain">'+XS.back+L('মূল ওয়ালেটে ফিরুন','Back to main wallet')+'</button></div>';
+  } else {
+    h+='<div class="oNote">'+IC.info+'<span>'+L('যেকোনো ওয়ালেটে সুইচ করলে সেটিই মূল ওয়ালেট হবে এবং অ্যাপ খুললে সরাসরি ওই ওয়ালেট খুলবে। যেকোনো সময় মূল ওয়ালেটে ফিরে আসতে পারবেন।','Switch to a wallet and it becomes your main wallet; the app opens straight into it. You can go back to your main wallet any time.')+'</span></div>';
+  }
+  h+='<div class="oSec"><span>'+L('চালু ওয়ালেট','Active wallets')+' ('+act.length+')</span></div>';
+  if(act.length) act.forEach(function(o){ h+=wItem(o); });
+  else h+='<div class="oNote"><span>'+L('এখন কোনো চালু ওয়ালেট নেই। নতুন ওয়ালেট খুলতে + চাপুন।','No active wallet right now. Tap + to open one.')+'</span></div>';
+  if(cls.length){ h+='<div class="oSec"><span>'+L('বন্ধ ওয়ালেট','Closed wallets')+' ('+cls.length+')</span></div>'; cls.forEach(function(o){ h+=wItem(o); }); }
+  return h;
+}
+function walletBar(w){
+  var o=w.o, op=o&&isOpen(o), cur=o&&curId()===o.id;
+  return '<div class="wBar'+(cur?' cur':'')+'"><span class="wbIc">'+XT.wallet+'</span><span class="wbTx"><small>'+(cur?L('মূল ওয়ালেট','Main wallet'):op?L('বর্তমান ওয়ালেট','Current wallet'):L('বন্ধ ওয়ালেট','Closed wallet'))+'</small><b>'+esc(w.name)+'</b></span>'
+    +'<button type="button" class="wbBtn" data-a="wlist">'+XS.swap+L('সুইচ','Switch')+'</button></div>';
+}
+function doSwitch(id){
+  var o=get(id); if(!o||!isOpen(o)) return;
+  setCur(o.id); S.sel=o.id; S.page='wallet'; S.tab='home'; render(); var bd=$('oBody'); if(bd) bd.scrollTop=0;
+  say(L('"'+o.name+'" এখন মূল ওয়ালেট','"'+o.name+'" is now your main wallet'));
+}
+function toMain(){
+  setCur(''); S.sel=''; S.page='list'; closeOt();
+  say(L('মূল ওয়ালেটে ফিরে এসেছেন','Back on your main wallet'));
+}
+function askDelWallet(id){
+  var o=get(id); if(!o) return; var s=stats(o), left=isOpen(o)?s.left:0;
+  var msg=L('এই ওয়ালেট এবং এর সব খরচের রেকর্ড মুছে যাবে।','This wallet and all of its expense records will be deleted.')
+    +(left>0.004?' '+L('বাকি '+money(left)+' মূল ব্যালেন্সে ফিরে যাবে।','The remaining '+money(left)+' goes back to your main balance.'):'')
+    +' '+L('এটি আর ফেরানো যাবে না।','This cannot be undone.');
+  appDialog(msg+'\n\n'+o.name,{confirm:true,yes:L('মুছুন','Delete')},function(){ doDelWallet(id); });
+}
+function doDelWallet(id){
+  var o=get(id); if(!o) return; var s=stats(o), txs=data.transactions.slice();
+  if(isOpen(o)&&s.left>0.004) txs.push(mkTx('use_from_account',s.left,{account:o.acc,note:L('ওয়ালেট মোছা হয়েছে — বাকি টাকা মূল ব্যালেন্সে ফেরত: ','Wallet deleted — remaining returned: ')+o.name}));
+  txs=txs.filter(function(x){ return x.fund!==o.acc; });   /* the wallet's own expenses; transfers stay so the main balance stays correct */
+  var bad=''; try{ bad=validateTxSet(txs); }catch(e){}
+  if(bad){ warn(bad); return; }
+  data.transactions=txs;
+  data.oneTime=list().filter(function(x){ return x.id!==o.id; });
+  data.accounts=(data.accounts||[]).filter(function(a){ return a!==o.acc; });
+  if(!data.accounts.length) data.accounts=[].concat(DEFAULT_ACCS);
+  if(data.spendFund===o.acc) data.spendFund='';
+  if(data.otActive===o.id) delete data.otActive;
+  if(S.sel===o.id) S.sel='';
+  S.page='list'; saveData(); refresh(); render(); say(L('ওয়ালেট মোছা হয়েছে','Wallet deleted'));
 }
 function render(){
   if(!S.open||!$('oBody')) return;
-  var ws=wallets(), o=S.sel?get(S.sel):null; if(!o&&ws.length){ o=ws[0]; S.sel=o.id; } if(!ws.length){ o=null; S.sel=''; }
-  var w=o?wInfo(o):null;
-  $('oTitle').textContent=L('স্পেশাল ডে','Special Day');
-  var tp=$('oTop'); tp.innerHTML=IC.plus; tp.setAttribute('data-a','new'); tp.setAttribute('aria-label','New');
-  var body=$('oBody');
-  if(!w){ body.innerHTML='<div class="oEmpty"><span style="color:var(--primary)">'+XN.walletG+'</span><b>'+L('এখনো কোনো ওয়ালেট নেই','No wallets yet')+'</b><p>'+L('ঈদ, বিয়ে, জন্মদিন বা ভ্রমণের জন্য আলাদা ওয়ালেট খুলুন এবং ডেমো ব্যালেন্স দিয়ে সব হিসাব করুন। এখানকার হিসাব মূল অ্যাপের হিসাব থেকে সম্পূর্ণ আলাদা।','Open a separate wallet for Eid, a wedding, a birthday or a trip and track everything with a demo balance. Everything here is kept apart from your main app accounts.')+'</p><button type="button" class="oBtn" data-a="new">'+L('নতুন ওয়ালেট খুলুন','Open a wallet')+'</button></div>'; }
+  var ws=wallets(), o=S.sel?get(S.sel):null;
+  if(!ws.length){ S.sel=''; S.page='list'; o=null; }
+  else if(S.page==='wallet'&&!o){ S.page='list'; S.sel=''; }
+  $('oTitle').textContent=L('অন্যান্য খরচ','Additional Expense');
+  var mb=$('oMain'); if(mb) mb.style.display=curId()?'':'none'; var tp=$('oTop'); tp.innerHTML=IC.plus; tp.setAttribute('data-a','new'); tp.setAttribute('aria-label','New');
+  var body=$('oBody'), w=(S.page==='wallet'&&o)?wInfo(o):null;
+  if(!ws.length){ body.innerHTML='<div class="oEmpty"><span style="color:var(--primary)">'+XN.walletG+'</span><b>'+L('এখনো কোনো ওয়ালেট নেই','No wallets yet')+'</b><p>'+L('ঈদ, বিয়ে, জন্মদিন বা ভ্রমণের জন্য আলাদা ওয়ালেট খুলুন এবং ডেমো ব্যালেন্স দিয়ে সব হিসাব করুন। এখানকার হিসাব মূল অ্যাপের হিসাব থেকে সম্পূর্ণ আলাদা।','Open a separate wallet for Eid, a wedding, a birthday or a trip and track everything with a demo balance. Everything here is kept apart from your main app accounts.')+'</p><button type="button" class="oBtn" data-a="new">'+L('নতুন ওয়ালেট খুলুন','Open a wallet')+'</button></div>'; }
+  else if(!w) body.innerHTML=vWallets();
   else body.innerHTML=S.tab==='tx'?vTx(w):S.tab==='st'?vSt(w):S.tab==='se'?vSe(w):vHome(w);
-  var car=$('hCar'); if(car){ car.addEventListener('scroll',function(){ var i=Math.round(car.scrollLeft/Math.max(1,car.clientWidth)), ds=$('hDots'); if(ds) [].forEach.call(ds.children,function(d,k){ d.classList.toggle('on',k===i); }); },{passive:true}); }
+  npInit(o); var car=$('hCar'); if(car){ car.addEventListener('scroll',function(){ var i=Math.round(car.scrollLeft/Math.max(1,car.clientWidth)), ds=$('hDots'); if(ds) [].forEach.call(ds.children,function(d,k){ d.classList.toggle('on',k===i); }); },{passive:true}); }
   ['oFab','oNav'].forEach(function(i){ var e=$(i); if(e) e.remove(); });
-  var ov=$('ftOtOv'), items=[['home',XN.home,L('হোম','Home')],['tx',XN.tx,L('লেনদেন','Transactions')],['st',XN.st,L('পরিসংখ্যান','Statistics')],['se',XN.se,L('সেটেলমেন্ট','Settlement')]];
-  var nv=document.createElement('div'); nv.id='oNav'; nv.className='oNav';
-  nv.innerHTML=items.map(function(x){ return '<button type="button" class="nvIt'+(S.tab===x[0]?' on':'')+'" data-a="tab" data-v="'+x[0]+'" aria-label="'+x[2]+'">'+x[1]+'<span>'+x[2]+'</span></button>'; }).join('');
-  ov.appendChild(nv);
-  var fb=document.createElement('button'); fb.type='button'; fb.id='oFab'; fb.className='oFab';
-  var addExp=o&&isOpen(o); fb.setAttribute('data-a',addExp?'exp':'new'); fb.setAttribute('aria-label',addExp?'Add expense':'New wallet'); fb.innerHTML=IC.plus; ov.appendChild(fb);
+  var ov=$('ftOtOv');
+  if(w){
+    var items=[['home',XN.home,L('হোম','Home')],['tx',XN.tx,L('লেনদেন','Transactions')],['st',XN.st,L('পরিসংখ্যান','Statistics')],['se',XN.se,L('সেটেলমেন্ট','Settlement')]];
+    var nv=document.createElement('div'); nv.id='oNav'; nv.className='oNav';
+    nv.innerHTML=items.map(function(x){ return '<button type="button" class="nvIt'+(S.tab===x[0]?' on':'')+'" data-a="tab" data-v="'+x[0]+'" aria-label="'+x[2]+'">'+x[1]+'<span>'+x[2]+'</span></button>'; }).join('');
+    ov.appendChild(nv);
+  }
+  if(w||ws.length){
+    var fb=document.createElement('button'); fb.type='button'; fb.id='oFab'; fb.className='oFab';
+    var addExp=!!(w&&o&&isOpen(o)); fb.setAttribute('data-a',addExp?'exp':'new'); fb.setAttribute('aria-label',addExp?'Add expense':'New wallet'); fb.innerHTML=IC.plus; ov.appendChild(fb);
+  }
 }
 /* ---- sheets ---- */
 
@@ -17626,8 +17890,8 @@ function srcField(o){
 /* টাকার উৎস অনুযায়ী লেনদেনের তালিকা বানায়: নতুন ব্যালেন্স = আয় জমা + হিসাবে সরানো; মূল = সরাসরি সরানো; ব্যাংক = একাউন্ট থেকে তুলে হিসাবে সরানো */
 function fundTxs(o,amt,first){
   var mode=(S.ctx&&S.ctx.mode)||'new', from=mode==='move'?($('oFrom').value||''):'', txs=[], src;
-  var tag=first?L('স্পেশাল ডে শুরু: ','Special Day opened: '):L('স্পেশাল ডে-তে যোগ: ','Added to Special Day: ');
-  if(mode==='new'){ src='new'; txs.push(mkTx('deposit',amt,{source:L('স্পেশাল ডে — নতুন ব্যালেন্স','Special Day — new balance'),note:tag+o.name})); }
+  var tag=first?L('অন্যান্য খরচ শুরু: ','Additional Expense opened: '):L('অন্যান্য খরচে যোগ: ','Added to Additional Expense: ');
+  if(mode==='new'){ src='new'; txs.push(mkTx('deposit',amt,{source:L('অন্যান্য খরচ — নতুন ব্যালেন্স','Additional Expense — new balance'),note:tag+o.name})); }
   else if(!from){ var bal=calcBalance(); if(amt>bal+0.005) return {err:L('মূল ব্যালেন্সে মাত্র '+money(bal)+' আছে','Main balance is only '+money(bal))}; src='main'; }
   else { var ab=0; try{ ab=calcAccountBalances()[from]||0; }catch(e){} if(amt>ab+0.005) return {err:L('"'+from+'" একাউন্টে মাত্র '+money(ab)+' আছে','"'+from+'" has only '+money(ab))}; src='acc:'+from; txs.push(mkTx('use_from_account',amt,{account:from,note:tag+o.name})); }
   txs.push(mkTx('save_to_account',amt,{account:o.acc,otSrc:src,note:tag+o.name}));
@@ -17640,7 +17904,7 @@ function commitMany(txs){
 }
 function openNew(){
   S.ctx={mode:'new'};
-  showSheet('<h3>'+L('নতুন স্পেশাল ডে হিসাব','New Special Day account')+'</h3><p class="oSub">'+L('নতুন টাকা দিয়ে শুরু করুন, অথবা মূল ব্যালেন্স/ব্যাংক থেকে ট্রান্সফার করুন।','Start with new money, or transfer from your main balance or a bank account.')+'</p>'
+  showSheet('<h3>'+L('নতুন অন্যান্য খরচ হিসাব','New Additional Expense account')+'</h3><p class="oSub">'+L('নতুন টাকা দিয়ে শুরু করুন, অথবা মূল ব্যালেন্স/ব্যাংক থেকে ট্রান্সফার করুন।','Start with new money, or transfer from your main balance or a bank account.')+'</p>'
     +'<div class="oLb"><span>'+L('উপলক্ষ্যের নাম','Occasion name')+'</span></div><input class="oIn" id="oName" maxlength="40" placeholder="'+L('যেমন: ঈদ ২০২৬, বোনের বিয়ে','e.g. Eid 2026, Sister\'s wedding')+'">'
     +srcField(null)
     +amtField('oAmt',L('শুরুর টাকা','Opening amount'),0)
@@ -17656,7 +17920,7 @@ function saveNew(){
   var r=fundTxs(o,amt,true); if(r.err) return err(r.err);
   if(!commitMany(r.txs)) return;
   if((data.accounts||[]).indexOf(o.acc)<0) data.accounts.push(o.acc);
-  list().push(o); saveData(); closeSheet(); S.sel=o.id; refresh(); render(); say(L('হিসাব খোলা হয়েছে','Account opened'));
+  list().push(o); saveData(); closeSheet(); S.sel=o.id; S.page='wallet'; S.tab='home'; refresh(); render(); say(L('হিসাব খোলা হয়েছে','Account opened'));
 }
 var XI={
   down:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l10 10M17 8v9H8"/></svg>',
@@ -17677,39 +17941,41 @@ function dtRender(){
 function updPrev(){
   var p=$('oPrev'); if(!p) return; var left=(S.ctx&&S.ctx.left)||0, v=num(($('oAmt')||{}).value)||0, rest=r2(left-v);
   p.className='xPrev'+(rest<0?' bad':'');
-  p.querySelector('.pl').textContent=rest<0?L('বাকির চেয়ে বেশি','Over by'):L('খরচের পর বাকি থাকবে','Left after this');
+  p.querySelector('.pl').textContent=rest<0?L('বকেয়া (Due) হবে','Will be due'):L('খরচের পর বাকি থাকবে','Left after this');
   p.querySelector('b').textContent=money(Math.abs(rest));
-  p.querySelector('i').style.width=(left?Math.min(100,Math.max(0,v/left*100)):0)+'%';
+  p.querySelector('i').style.width=(left>0?Math.min(100,Math.max(0,v/left*100)):(v>0?100:0))+'%';
 }
 function openExp(){
   var o=get(S.sel); if(!o) return; var s=stats(o);
-  if(s.left<=0.004){ warn(L('এই হিসাবে এখন কোনো টাকা নেই। আগে "টাকা যোগ" করুন।','This account has no money left. Add money first.')); return; }
   S.ctx={auto:true,left:s.left};
   var used=Object.keys(s.cats||{}).sort(function(x,y){ return s.cats[y]-s.cats[x]; }).slice(0,6);
-  var chips=used.length?'<div class="xCh" id="oCatCh">'+used.map(function(c){ return '<button type="button" data-a="cpick" data-v="'+esc(c)+'">'+esc(c)+'</button>'; }).join('')+'</div>':'';
-  var qs=[100,500,1000].filter(function(n){ return n<s.left; }).map(function(n){ return '<button type="button" data-a="qa" data-v="'+n+'">+'+n+'</button>'; }).join('');
-  showSheet('<div class="xHead"><span class="xBadge">'+XI.down+'</span><div><h3>'+L('খরচ যোগ','Add expense')+'</h3><p class="oSub">'+esc(o.name)+'</p></div><div class="xLeft"><small>'+L('বাকি','Left')+'</small><b>'+money(s.left)+'</b></div></div>'
+  var cands=catCands(o), chips='<div class="xCh" id="oCatCh">'+catChipHtml(cands.slice(0,8))+'</div>';
+  var qs=[100,500,1000].filter(function(n){ return s.left<=0||n<s.left; }).map(function(n){ return '<button type="button" data-a="qa" data-v="'+n+'">+'+n+'</button>'; }).join('');
+  showSheet('<div class="xHead"><span class="xBadge">'+XI.down+'</span><div><h3>'+L('খরচ যোগ','Add expense')+'</h3><p class="oSub">'+esc(o.name)+'</p></div><div class="xLeft"><small>'+(s.left<0?L('বকেয়া','Due'):L('বাকি','Left'))+'</small><b>'+money(Math.abs(s.left))+'</b></div></div>'
     +'<div class="oLb"><span>'+L('টাকার পরিমাণ','Amount')+'</span><button type="button" class="oMax" data-a="max" data-v="'+s.left+'">'+L('সবটুকু','Max')+' '+money(s.left)+'</button></div>'
     +'<div class="xAmt"><span>৳</span><input class="oIn big" id="oAmt" inputmode="decimal" autocomplete="off" placeholder="0" data-focus="1"></div>'
     +'<div class="xQ">'+qs+'</div>'
     +'<div class="xPrev" id="oPrev"><div><span class="pl"></span><b></b></div><em><i></i></em></div>'
     +'<div class="oLb"><span>'+L('কীসের খরচ (খাত)','What for (category)')+'</span></div><input class="oIn" id="oCat" maxlength="30" autocomplete="off" placeholder="'+L('নিজে লিখুন, যেমন: জামা, বিরিয়ানি, সালামি','Type your own, e.g. clothes, biryani')+'">'+chips
+    +'<div class="oLb"><span>'+L('পরিমাণ / Qty (ঐচ্ছিক)','Qty (optional)')+'</span></div><input class="oIn" id="oQty" maxlength="20" autocomplete="off" placeholder="'+L('যেমন: ২ কেজি, ৩ পিস','e.g. 2 kg, 3 pcs')+'">'
     +'<div class="oLb"><span>'+L('নোট (ঐচ্ছিক)','Note (optional)')+'</span></div><input class="oIn" id="oNoteIn" maxlength="80" placeholder="'+L('কী কিনলেন / কাকে দিলেন','What was it for')+'">'
     +'<div class="oLb"><span>'+L('তারিখ ও সময়','Date & time')+'</span></div>'
     +'<div class="xDt"><span class="xDtIc">'+XI.clock+'</span><div class="xDtTx"><b id="oDtTop"></b><small id="oDtSub"></small></div><button type="button" class="xPen" id="oPen" data-a="dtEdit" aria-label="Edit">'+XI.pen+'</button></div>'
     +'<div class="xDtEdit" id="oDtEdit"><input class="oIn" type="date" id="oDt"><input class="oIn" type="time" id="oTm"><button type="button" class="xNow" data-a="dtNow">'+L('এখন','Now')+'</button></div>'
     +'<div class="oErr" id="oErr"></div><button type="button" class="oBtn" data-a="expSave">'+L('খরচ সেভ করুন','Save expense')+'</button>');
   updPrev(); dtRender();
+  var cIn=$('oCat'), cBox=$('oCatCh'); if(cIn&&cBox) cIn.addEventListener('input',function(){ var q=cIn.value.trim().toLowerCase(), r=cands;
+    if(q){ r=cands.filter(function(c){ return c.toLowerCase().indexOf(q)>=0; }).sort(function(a,b){ return (b.toLowerCase().indexOf(q)===0)-(a.toLowerCase().indexOf(q)===0); }); }
+    cBox.innerHTML=catChipHtml(r.slice(0,8)); });
   S.tick=setInterval(function(){ if(S.ctx&&S.ctx.auto) dtRender(); },1000);
 }
 function saveExp(){
   var o=get(S.sel); if(!o) return; var s=stats(o), amt=num($('oAmt').value);
   if(!amt) return err(L('টাকার পরিমাণ লিখুন','Enter an amount'));
-  if(amt>s.left+0.005) return err(L('এই হিসাবে মাত্র '+money(s.left)+' আছে। আগে "টাকা যোগ" করুন।','Only '+money(s.left)+' left in this account. Add money first.'));
   var dd=todayStr(), tt=nowTime(); if(!(S.ctx&&S.ctx.auto)){ dd=($('oDt').value||dd); tt=($('oTm').value||tt); }
-  var tx=mkTx('expense',amt,{category:($('oCat').value||'').trim()||L('অন্যান্য','Other'),fund:o.acc,note:($('oNoteIn').value||'').trim(),date:dd,time:tt});
+  var tx=mkTx('expense',amt,{category:($('oCat').value||'').trim()||L('অন্যান্য','Other'),fund:o.acc,note:($('oNoteIn').value||'').trim(),qty:(($('oQty')||{}).value||'').trim(),date:dd,time:tt});
   if(!commit(tx)) return;
-  saveData(); closeSheet(); refresh(); render(); say(L('খরচ যোগ হয়েছে','Expense added'));
+  saveData(); closeSheet(); refresh(); render(); var dn2=stats(o).left; say(dn2<-0.004?L('খরচ যোগ হয়েছে · বকেয়া '+money(-dn2),'Expense added · Due '+money(-dn2)):L('খরচ যোগ হয়েছে','Expense added'));
 }
 function openTop(){
   var o=get(S.sel); if(!o) return; S.ctx={mode:'new'};
@@ -17737,24 +18003,34 @@ function saveRet(){
   var o=get(S.sel); if(!o) return; var s=stats(o), amt=num($('oAmt').value);
   if(!amt) return err(L('টাকার পরিমাণ লিখুন','Enter an amount'));
   if(amt>s.left+0.005) return err(L('এই হিসাবে মাত্র '+money(s.left)+' আছে','Only '+money(s.left)+' in this account'));
-  var tx=mkTx('use_from_account',amt,{account:o.acc,note:L('স্পেশাল ডে থেকে ফেরত: ','Returned from Special Day: ')+o.name});
+  var tx=mkTx('use_from_account',amt,{account:o.acc,note:L('অন্যান্য খরচ থেকে ফেরত: ','Returned from Additional Expense: ')+o.name});
   if(!commit(tx)) return;
   saveData(); closeSheet(); refresh(); render(); say(L('মূল ব্যালেন্সে ফেরত গেছে','Returned to main balance'));
 }
 function askClose(){
   var o=get(S.sel); if(!o) return; var s=stats(o);
-  var msg=s.left>0.004
+  var msg=s.left<-0.004
+    ? L('এই হিসাব সেটেল করবেন?\n\n'+money(-s.left)+' বকেয়া আছে। মূল অ্যাপের ঋণ (Loan) তালিকায় "'+o.name+' (due)" নামে '+money(-s.left)+' ঋণ তৈরি হবে।','Settle this account?\n\n'+money(-s.left)+' is due. A loan named "'+o.name+' (due)" for '+money(-s.left)+' will be created in your main Loans.')
+    : s.left>0.004
     ? L('এই হিসাব বন্ধ করবেন?\n\nবাকি '+money(s.left)+' মূল ব্যালেন্সে ফিরে যাবে।','Close this account?\n\nThe remaining '+money(s.left)+' goes back to your main balance.')
     : L('এই হিসাব বন্ধ করবেন?\n\nহিসাবে আর কোনো টাকা বাকি নেই।','Close this account?\n\nNothing is left in it.');
   appDialog(msg,{confirm:true,yes:L('বন্ধ করুন','Close'),icon:'info'},function(){ doClose(o.id); });
 }
 function doClose(id){
   var o=get(id); if(!o||!isOpen(o)) return; var s=stats(o);
+  if(s.left<-0.004){
+    var dueAmt=r2(-s.left), pn=o.name+' (due)';
+    var t1=mkTx('loan_taken',dueAmt,{person:pn,due:todayStr(),note:L('অন্যান্য খরচ বকেয়া — সেটেলমেন্ট: ','Additional expense due — settlement: ')+o.name});
+    var t2=mkTx('save_to_account',dueAmt,{account:o.acc,note:L('বকেয়া সেটেলমেন্ট — ঋণ হিসাবে মূল অ্যাপে: ','Due settled as loan in main app: ')+o.name});
+    var bad=''; try{ bad=validateTxSet(data.transactions.concat([t1,t2])); }catch(e){}
+    if(bad){ warn(bad); return; }
+    data.transactions.push(t1,t2);
+  }
   if(s.left>0.004){
     var tx=mkTx('use_from_account',s.left,{account:o.acc,note:L('হিসাব বন্ধ — বাকি টাকা মূল ব্যালেন্সে ফেরত: ','Account closed — remaining returned: ')+o.name});
     if(!commit(tx)) return;
   }
-  o.status='closed'; o.closedAt=todayStr(); o.ts=Date.now();
+  o.status='closed'; o.closedAt=todayStr(); o.ts=Date.now(); if(data.otActive===o.id) delete data.otActive;
   /* বন্ধ হিসাব একাউন্ট তালিকা/ওয়ালেটে আর দেখাবে না; লেনদেনের ইতিহাস ঠিক থাকে */
   data.accounts=(data.accounts||[]).filter(function(a){ return a!==o.acc; });
   if(data.spendFund===o.acc) data.spendFund='';
@@ -17781,23 +18057,30 @@ function onClick(e){
   switch(a){
     case 'back': goBack(); break;
     case 'new': openNew(); break;
-    case 'open': S.sel=b.getAttribute('data-id'); render(); var bd=$('oBody'); if(bd) bd.scrollTop=0; break;
+    case 'open': S.sel=b.getAttribute('data-id'); S.page='wallet'; render(); var bd=$('oBody'); if(bd) bd.scrollTop=0; break;
     case 'tgc': S.closedOpen=!S.closedOpen; render(); break;
     case 'sx': closeSheet(); break;
     case 'trw': S.tr='w'; render(); break;
     case 'tab': S.tab=b.getAttribute('data-v'); render(); var bd2=$('oBody'); if(bd2) bd2.scrollTop=0; break;
-    case 'wsel': S.sel=b.getAttribute('data-id')||''; if(b.getAttribute('data-go')) S.tab=b.getAttribute('data-go'); render(); if(b.getAttribute('data-go')){ var bd3=$('oBody'); if(bd3) bd3.scrollTop=0; } break;
+    case 'wsel': S.sel=b.getAttribute('data-id')||''; S.page='wallet'; if(b.getAttribute('data-go')) S.tab=b.getAttribute('data-go'); render(); if(b.getAttribute('data-go')){ var bd3=$('oBody'); if(bd3) bd3.scrollTop=0; } break;
     case 'print': printSummary(S.sel?get(S.sel):null); break;
     case 'trm': S.tr='m'; render(); break;
+    case 'nsave': npSave(); break;
+    case 'npBoth': npCommit(true); break;
+    case 'npTask': npCommit(false); break;
+    case 'nedit': S.npOpen=!S.npOpen; render(); if(S.npOpen){ var nt=$('oNoteTa'); if(nt) nt.focus(); } break;
+    case 'ntog': var no=get(S.sel); if(no){ npItems(no).forEach(function(x){ if(x.id===b.getAttribute('data-id')) x.d=x.d?0:1; }); saveData(); render(); } break;
+    case 'ndel': var nd=get(S.sel); if(nd){ nd.shop=npItems(nd).filter(function(x){ return x.id!==b.getAttribute('data-id'); }); saveData(); render(); } break;
+    case 'nclr': var nc=get(S.sel); if(nc){ nc.shop=npItems(nc).filter(function(x){ return !x.d; }); saveData(); render(); } break;
     case 'calc': if(S.calcDrag) break; var pn=$('cPan'); if(pn){ pn.classList.toggle('on'); var bb=$('cBub'); if(pn.classList.contains('on')&&bb){ var wr=$('oSheet').getBoundingClientRect(), br=bb.getBoundingClientRect(); var t=br.bottom-wr.top+8; if(t+400>wr.height) t=Math.max(8,br.top-wr.top-408); pn.style.top=t+'px'; } } break;
     case 'calk': calcKey(b.getAttribute('data-v')); break;
     case 'cuse': calcUse(); break;
-    case 'qa': var ai=$('oAmt'); if(ai){ var cur=num(ai.value)||0, lf=(S.ctx&&S.ctx.left)||0; ai.value=Math.min(lf,cur+(+b.getAttribute('data-v'))); updPrev(); } break;
+    case 'qa': var ai=$('oAmt'); if(ai){ var cur=num(ai.value)||0, lf=(S.ctx&&S.ctx.left)||0; ai.value=cur+(+b.getAttribute('data-v')); updPrev(); } break;
     case 'cpick': var ci=$('oCat'); if(ci){ ci.value=b.getAttribute('data-v'); [].forEach.call(document.querySelectorAll('#oCatCh button'),function(c){ c.classList.toggle('on',c===b); }); } break;
     case 'dtEdit': var de=$('oDtEdit'); if(de){ var opn=de.style.display!=='flex'; if(opn){ S.ctx.auto=false; $('oDt').value=todayStr(); $('oTm').value=nowTime(); } de.style.display=opn?'flex':'none'; $('oPen').classList.toggle('on',opn); dtRender(); } break;
     case 'dtNow': S.ctx.auto=true; $('oDtEdit').style.display='none'; $('oPen').classList.remove('on'); dtRender(); break;
     case 'emo': S.ctx=S.ctx||{}; S.ctx.emo=b.getAttribute('data-v'); [].forEach.call(document.querySelectorAll('#oEmo .oChip'),function(c){ c.classList.toggle('on',c===b); }); break;
-    case 'max': var i=$('oAmt'); if(i){ i.value=b.getAttribute('data-v'); i.focus(); } break;
+    case 'max': var i=$('oAmt'); if(i){ i.value=Math.max(0,+b.getAttribute('data-v')||0); i.focus(); } break;
     case 'mode': S.ctx=S.ctx||{}; S.ctx.mode=b.getAttribute('data-v'); [].forEach.call(document.querySelectorAll('#ftOtOv .oSeg button'),function(c){ c.classList.toggle('on',c===b); }); var fw=$('oFromW'); if(fw) fw.style.display=S.ctx.mode==='move'?'block':'none'; break;
     case 'mk': saveNew(); break;
     case 'exp': openExp(); break;
@@ -17809,6 +18092,10 @@ function onClick(e){
     case 'close': askClose(); break;
     case 'reopen': doReopen(); break;
     case 'del': askDel(b.getAttribute('data-id')); break;
+    case 'switch': doSwitch(b.getAttribute('data-id')); break;
+    case 'tomain': toMain(); break;
+    case 'wlist': S.page='list'; S.tab='home'; render(); var bd4=$('oBody'); if(bd4) bd4.scrollTop=0; break;
+    case 'wdel': askDelWallet(b.getAttribute('data-id')); break;
     case 'copy': var o=get(S.sel); if(o) copyText(summaryText(o)).then(function(ok){ say(ok?L('সারাংশ কপি হয়েছে','Summary copied'):L('কপি করা যায়নি','Could not copy')); }); break;
   }
 }
@@ -17821,14 +18108,15 @@ function fit(){
 function ensure(){
   if($('ftOtOv')) return;
   var ov=document.createElement('div'); ov.id='ftOtOv';
-  ov.innerHTML='<div class="obar"><button type="button" class="ob" data-a="back" aria-label="Back">'+IC.back+'</button><b id="oTitle"></b><button type="button" class="ob" id="oTop" data-a="new"></button></div><div class="obody" id="oBody"></div><div class="oSheetW" id="oSheet"></div>';
+  ov.innerHTML='<div class="obar"><button type="button" class="ob" data-a="back" aria-label="Back">'+IC.back+'</button><b id="oTitle"></b><button type="button" class="ob" id="oMain" data-a="tomain" aria-label="Main wallet" style="display:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button type="button" class="ob" id="oTop" data-a="new"></button></div><div class="obody" id="oBody"></div><div class="oSheetW" id="oSheet"></div>';
   document.body.appendChild(ov); ov.addEventListener('click',onClick);
   if(window.visualViewport){ visualViewport.addEventListener('resize',fit); visualViewport.addEventListener('scroll',fit); }
 }
 function histPush(){ if(!hP){ try{ history.pushState({ftOt:1},''); hP=true; }catch(e){} } }
-function goBack(){ if(S.sheet){ closeSheet(); return; } if(S.tab!=='home'){ S.tab='home'; render(); return; } closeOt(); }
-function openOt(){
-  ensure(); list(); S.open=true; S.sel=''; S.tab='home'; S.sheet=false;
+function goBack(){ if(S.sheet){ closeSheet(); return; } if(S.page==='wallet'&&S.tab!=='home'){ S.tab='home'; render(); return; } if(S.page==='wallet'&&wallets().length){ S.page='list'; render(); var bd5=$('oBody'); if(bd5) bd5.scrollTop=0; return; } closeOt(); }
+function openOt(mode){
+  ensure(); list(); S.open=true; S.tab='home'; S.sheet=false;
+  var c=(mode==='auto')?curId():''; S.sel=c; S.page=c?'wallet':'list';
   document.body.classList.add('ftOtOpen'); $('ftOtOv').classList.add('on'); render(); histPush();
 }
 function closeOt(){
@@ -17837,6 +18125,21 @@ function closeOt(){
   if(hP){ hP=false; try{ history.back(); }catch(e){} }
 }
 window.addEventListener('popstate',function(){ if(!hP) return; hP=false; if(S.open){ goBack(); if(S.open) histPush(); } });
+/* launch straight into the wallet the user switched to (once, after the lock / login screens are gone) */
+var autoDone=false;
+function vis(id){ var e=$(id); if(!e) return false; var cs=getComputedStyle(e); return cs.display!=='none'&&cs.visibility!=='hidden'; }
+function tryAuto(){
+  if(autoDone) return true;
+  try{
+    if(typeof data==='undefined'||!data||!document.body) return false;
+    if(localStorage.getItem('loginDone_v1')!=='true') return false;
+    if(vis('lockOverlay')||vis('loginScreen')) return false;
+    autoDone=true;
+    if(curId()&&!S.open) openOt('auto');
+  }catch(e){ autoDone=true; }
+  return true;
+}
+var autoT=setInterval(function(){ if(tryAuto()) clearInterval(autoT); },250);
 window.ftOneTime={open:openOt,close:closeOt,isOT:function(a){ try{ return list().some(function(o){ return isOpen(o)&&o.acc===a; }); }catch(e){ return false; } },held:heldTotal};
 })();
 </script>
@@ -18456,7 +18759,7 @@ function remOf(t){ if(!t||!t.rid) return null; return RL().find(function(x){ ret
 function isPast(date,time){ var td=todayStr(); return date<td||(date===td&&time<=nowTime()); }
 function mkRem(title,date,time){ var r={id:Date.now()+'-'+Math.random().toString(36).slice(2,7)+'p',title:title,kind:'other',date:date,time:time,repeat:'none',done:false,snz:0}; RL().push(r); return r.id; }
 function dropRem(t){ if(!t||!t.rid) return; data.reminders=RL().filter(function(x){ return x.id!==t.rid; }); delete t.rid; }
-function fT(t){ var h=+String(t).slice(0,2); return num(h%12||12)+':'+String(t).slice(3,5).replace(/\d/g,function(c){ return num(c); })+' '+(h>=12?'PM':'AM'); }
+function fT(t){ if(!ftH12()) return ftFmtHM(t).replace(/\d/g,function(c){ return num(c); }); var h=+String(t).slice(0,2); return num(h%12||12)+':'+String(t).slice(3,5).replace(/\d/g,function(c){ return num(c); })+' '+(h>=12?'PM':'AM'); }
 function remTime(){ var e=$('plRT'), v=e&&e.value; return /^\d{2}:\d{2}$/.test(v||'')?v:'09:00'; }
 function refreshApp(){ try{ if(window.updateHome) window.updateHome(); }catch(e){} }
 function setView(y,m){ var d=new Date(y,m,1); V.y=d.getFullYear(); V.m=d.getMonth(); }
@@ -21228,7 +21531,7 @@ const SUB={
 const SECS=[
  ['অ্যাকাউন্ট ও প্রোফাইল','Account & Profile',['@acct','settings_profile','bdSetBox']],
  ['আর্থিক ব্যবস্থাপনা','Finance & Budgeting',['curBox','settings_budget','settings_goal','periodSetBox','spSetBox','settings_recurring','payBox','qxBox']],
- ['চেহারা ও ভাষা','Appearance',['settings_theme','settings_lang']],
+ ['চেহারা ও ভাষা','Appearance',['settings_theme','settings_lang','regBox']],
  ['অ্যালার্ট ও রিমাইন্ডার','Alerts & Reminders',['rmBox','ntSetBox']],
  ['নিরাপত্তা ও অ্যাক্সেস','Security & Access',['lock_heading','pin_heading','secPlusBox']],
  ['ডেটা ম্যানেজমেন্ট','Data Management',['cloudSyncBox','backup_heading']],
@@ -21659,7 +21962,7 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
 
   /* ---------- helpers ---------- */
   function toast(m){ try{ if(window.toast) window.toast(m); else { var t = $('qaToast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove('on'); }, 2200); } }catch(e){} }
-  function t12(hm){ var p = String(hm || '').split(':'), h = +p[0] || 0, m = (p[1] || '00').slice(0,2), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m + ' ' + ap; }
+  function t12(hm){ if(!ftH12()) return ftFmtHM(hm); var p = String(hm || '').split(':'), h = +p[0] || 0, m = (p[1] || '00').slice(0,2), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + m + ' ' + ap; }
   function dLabel(ds){ try{ var p = ds.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(B() ? 'bn-BD' : 'en-GB', {day:'numeric', month:'short', year:'numeric'}); }catch(e){ return ds; } }
   function nowLabel(){
     if(!Q.dt) return L('এখন (আজ · ', 'Now (Today · ') + t12(nowTime()) + ')';
@@ -21965,7 +22268,7 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
   var nameOf=function(c){ var d=bn()?nBn:nEn; try{ return (d&&d.of(c))||(nEn&&nEn.of(c))||c; }catch(e){ return c; } };
   var LIST=CODES.map(function(c){ return {c:c,s:ftCurSymOf(c),en:(function(){ try{ return nEn?nEn.of(c):c; }catch(e){ return c; } })()}; });
   var box=document.createElement('details'); box.className='box setBox'; box.id='curBox';
-  box.innerHTML='<summary><span class="setIco" style="--c:#16a34a"><i class="mi" style="--m:var(--ic-globe)"></i></span><h3>'+bl('মুদ্রা পছন্দ','Currency Preferences')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
+  box.innerHTML='<summary><span class="setIco" style="--c:#16a34a"><i class="mi" style="--m:var(--ic-globe)"></i></span><h3>'+bl('মুদ্রা','Currency')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
   var body=box.querySelector('.setBody');
   function draw(q){
     q=(q||'').trim().toLowerCase();
@@ -21988,6 +22291,53 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
       var msg=(bn()?'মুদ্রা বদলাবেন? অ্যাপ একবার রিলোড হবে।':'Switch currency? The app will reload once.')+'\n\n'+c+' ('+ftCurSymOf(c)+') — '+nameOf(c);
       if(typeof appDialog==='function') appDialog(msg,{confirm:true,yes:bn()?'বদলান':'Switch',icon:'globe'},function(){ ftSetCurrency(c); });
       else if(confirm(msg)) ftSetCurrency(c);
+    };
+  }
+  build();
+  box.addEventListener('toggle',function(){ if(box.open) build(); });
+  sec.appendChild(box);
+})();
+</script>
+
+<style id="ftRegionCss">
+#regBox .rgNow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--primary) 10%,transparent);margin-bottom:12px}
+#regBox .rgNow b.s{font-size:15px;font-weight:800;color:var(--primary);min-width:40px;text-align:center}
+#regBox .rgNow small{display:block;color:var(--muted);font-size:12px}
+#regBox .rgNow .n{font-weight:800;font-size:15px}
+#regBox .rgList{border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+#regBox .rgRow{display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:0;border-bottom:1px solid var(--border);color:var(--text);text-align:left;font:inherit;cursor:pointer}
+#regBox .rgRow:last-child{border-bottom:0}
+#regBox .rgRow:active,#regBox .rgRow.on{background:color-mix(in srgb,var(--primary) 12%,transparent)}
+#regBox .rgRow .cd{min-width:40px;text-align:center;font-weight:800;color:var(--primary);font-size:13px}
+#regBox .rgRow .nm{flex:1;font-weight:700;font-size:14px}
+#regBox .rgRow .tm{font-size:12.5px;color:var(--muted);text-align:right;line-height:1.35}
+#regBox .rgNote{font-size:12.5px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+</style>
+<script id="ftRegionSettings">
+(function(){
+  var sec=document.getElementById('sec-settings'); if(!sec) return;
+  var bn=function(){ return typeof currentLang!=='undefined'&&currentLang==='bn'; };
+  var bl=function(b,e){ return '<span class="bn">'+b+'</span><span class="en">'+e+'</span>'; };
+  var R=ftRegionList();
+  var nm=function(c){ return R[c].n[bn()?0:1]; };
+  var sample=function(c){
+    try{ var o={hour:'numeric',minute:'2-digit',hour12:R[c].h12}; if(R[c].tz) o.timeZone=R[c].tz;
+      return new Date().toLocaleTimeString(bn()?'en-US':'en-US',o); }catch(e){ return ''; }
+  };
+  var box=document.createElement('details'); box.className='box setBox'; box.id='regBox';
+  box.innerHTML='<summary><span class="setIco" style="--c:#0ea5e9"><i class="mi" style="--m:var(--ic-globe)"></i></span><h3>'+bl('টাইম জোন','Time Zone')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
+  var body=box.querySelector('.setBody');
+  function build(){
+    var cur=ftRegionCode();
+    body.innerHTML='<div class="rgNow"><b class="s">'+R[cur].c+'</b><div><small>'+bl('বর্তমান টাইম জোন','Current time zone')+'</small><span class="n">'+nm(cur)+'</span></div></div>'
+      +'<div class="rgList">'+Object.keys(R).map(function(c){ return '<button type="button" class="rgRow'+(c===cur?' on':'')+'" data-c="'+c+'"><span class="cd">'+R[c].c+'</span><span class="nm">'+nm(c)+'</span><span class="tm">'+sample(c)+'<br>'+(R[c].h12?'12h':'24h')+'</span></button>'; }).join('')+'</div>'
+      +'<p class="rgNote">'+bl('টাইম জোন বদলালে পুরো Finverse অ্যাপের সময়ের ফরম্যাট (১২/২৪ ঘণ্টা) ও টাইমজোন বদলে যাবে। আগের লেনদেনের সময় বদলায় না।','Changing the time zone updates the time format (12/24-hour) and time zone across the whole Finverse app. Existing transactions keep their saved time.')+'</p>';
+    body.querySelector('.rgList').onclick=function(e){
+      var b=e.target.closest('.rgRow'); if(!b) return;
+      var c=b.getAttribute('data-c'); if(c===ftRegionCode()) return;
+      var msg=(bn()?'টাইম জোন বদলাবেন? অ্যাপ একবার রিলোড হবে।':'Switch time zone? The app will reload once.')+'\n\n'+nm(c)+' — '+(R[c].h12?'12-hour':'24-hour');
+      if(typeof appDialog==='function') appDialog(msg,{confirm:true,yes:bn()?'বদলান':'Switch',icon:'globe'},function(){ ftSetRegion(c); });
+      else if(confirm(msg)) ftSetRegion(c);
     };
   }
   build();
@@ -22333,7 +22683,7 @@ button.ftLid{cursor:pointer;font-family:inherit;font-weight:700}
       +'<div class="pd-h">'+T('লেনদেনের তালিকা','Transactions')+'</div>'
       +'<table class="pd-tbl"><thead><tr><th>'+T('তারিখ','Date')+'</th><th>'+T('ধরন','Type')+'</th><th class="n">'+T('পরিমাণ','Amount')+'</th><th class="n">'+T('ব্যালেন্স','Balance')+'</th></tr></thead><tbody>'
       + rows.map(function(r){ var x=r.x;
-          return '<tr><td>'+esc(x.date||'')+(x.time?'<div style="font-size:7.5pt;color:#6b7280">'+esc(x.time)+'</div>':'')+'</td><td>'+esc(r.label)+(x.due?'<div style="font-size:7.5pt;color:#6b7280">'+T('ফেরতের তারিখ ','Due ')+esc(x.due)+'</div>':'')+(x.note?'<div style="font-size:7.5pt;color:#6b7280">'+esc(x.note)+'</div>':'')+'</td><td class="n">'+fN(r.a)+'</td><td class="n" style="color:'+(r.bal<-0.004?R:r.bal>0.004?G:'#1a1c1e')+';font-weight:700">'+(r.bal>0.004?'+':r.bal<-0.004?'−':'')+fN(r.bal)+'</td></tr>'; }).join('')
+          return '<tr><td>'+esc(x.date||'')+(x.time?'<div style="font-size:7.5pt;color:#6b7280">'+esc(ftFmtHM(x.time))+'</div>':'')+'</td><td>'+esc(r.label)+(x.due?'<div style="font-size:7.5pt;color:#6b7280">'+T('ফেরতের তারিখ ','Due ')+esc(x.due)+'</div>':'')+(x.note?'<div style="font-size:7.5pt;color:#6b7280">'+esc(x.note)+'</div>':'')+'</td><td class="n">'+fN(r.a)+'</td><td class="n" style="color:'+(r.bal<-0.004?R:r.bal>0.004?G:'#1a1c1e')+';font-weight:700">'+(r.bal>0.004?'+':r.bal<-0.004?'−':'')+fN(r.bal)+'</td></tr>'; }).join('')
       +'</tbody></table>'
       +'<p class="pd-date" style="text-align:left">'+T('ব্যালেন্স: + মানে তিনি আপনাকে দেবেন, − মানে আপনি তাকে দেবেন।','Balance: + means they owe you, − means you owe them.')+'</p>';
     closeStmt();
@@ -22345,7 +22695,7 @@ button.ftLid{cursor:pointer;font-family:inherit;font-weight:700}
     closeStmt();
     var rows=statementData(p), sign=function(n){ return (n>0.004?'<span class="sPos">+':n<-0.004?'<span class="sNg">−':'<span>')+fmt(Math.abs(n))+'</span>'; };
     var body=rows.map(function(r){ var x=r.x;
-      return '<tr><td>'+esc(x.date||'')+'<small>'+esc(x.time||'')+'</small></td><td>'+esc(r.label)+(x.due?'<small>'+T('ফেরতের তারিখ ','Due ')+esc(x.due)+'</small>':'')+(x.note?'<small>'+esc(x.note)+'</small>':'')+'</td><td class="r">'+fmt(r.a)+'</td><td class="r">'+sign(r.bal)+'</td></tr>'; }).join('');
+      return '<tr><td>'+esc(x.date||'')+'<small>'+esc(ftFmtHM(x.time||''))+'</small></td><td>'+esc(r.label)+(x.due?'<small>'+T('ফেরতের তারিখ ','Due ')+esc(x.due)+'</small>':'')+(x.note?'<small>'+esc(x.note)+'</small>':'')+'</td><td class="r">'+fmt(r.a)+'</td><td class="r">'+sign(r.bal)+'</td></tr>'; }).join('');
     var ov=document.createElement('div'); ov.id='ftStmt';
     ov.innerHTML='<div class="sSheet" role="dialog">'
       +'<div class="sBar">'
