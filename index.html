@@ -16827,6 +16827,7 @@ async function shareSum(t){
   try{ if(navigator.share){ await navigator.share({text:txt}); return; } }catch(e){ return; }
   copyText(txt).then(function(ok){ say(ok?L('সারাংশ কপি হয়েছে','Summary copied'):L('কপি করা যায়নি','Could not copy')); });
 }
+
 /* ---- events ---- */
 function chipSet(box,v){ [].forEach.call(box.querySelectorAll('.tChip'),function(b){ b.classList.toggle('on',b.getAttribute('data-v')===v); }); }
 function onClick(e){
@@ -17386,6 +17387,7 @@ function accNameTaken(n){
 }
 /* put = মূল ব্যালেন্স থেকে এসেছে, ret = মূল ব্যালেন্সে ফেরত গেছে, spent = এই হিসাব থেকে খরচ */
 function stats(o){
+  if(o.v===2) return stats2(o);
   var put=0, ret=0, spent=0, cats={}, led=[];
   data.transactions.forEach(function(tx){
     var m=TYPE_META[tx.type]; if(!m) return;
@@ -17396,7 +17398,7 @@ function stats(o){
   led.sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
   return {put:r2(put), ret:r2(ret), spent:r2(spent), left:r2(put-ret-spent), cats:cats, led:led};
 }
-function heldTotal(){ var t=0; list().forEach(function(o){ if(isOpen(o)) t+=Math.max(0,stats(o).left); }); return r2(t); }
+function heldTotal(){ var t=0; list().forEach(function(o){ if(isOpen(o)&&o.v!==2) t+=Math.max(0,stats(o).left); }); return r2(t); }
 function refresh(){ ['renderDash','renderAccounts','renderLoans','renderHistory'].forEach(function(f){ try{ if(typeof window[f]==='function') window[f](); }catch(e){} }); }
 function mkTx(type,amount,o){
   var x={id:Date.now()+'-'+Math.random().toString(36).slice(2,7),type:type,amount:amount,category:null,source:null,due:null,person:null,account:null,fund:null,note:'',date:todayStr(),time:nowTime()};
@@ -17429,9 +17431,9 @@ function vList(){
   var all=list().slice().sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
   var act=all.filter(isOpen), cls=all.filter(function(o){ return !isOpen(o); }), h='';
   h+='<div class="oHero"><div class="ohTop"><span>'+L('মূল ব্যালেন্স','Main balance')+'</span></div><div class="ohBig">'+money(calcBalance())+'</div><div class="ohRow two" style="margin-top:14px"><div><small>'+L('অন্যান্য খরচে আলাদা','Set aside for Additional Expenses')+'</small><b>'+money(heldTotal())+'</b></div><div><small>'+L('চালু হিসাব','Active accounts')+'</small><b style="color:#fff!important">'+act.length+'</b></div></div></div>';
-  h+='<div class="oNote">'+IC.info+'<span>'+L('ঈদ, বিয়ে, জন্মদিন, ভ্রমণ বা যেকোনো বিশেষ দিনের জন্য আলাদা হিসাব রাখুন। হিসাব শুরু করা যায় দুইভাবে: নতুন ওপেনিং ব্যালেন্স দিয়ে, অথবা মূল ব্যালেন্স/ব্যাংক-একাউন্ট থেকে টাকা ট্রান্সফার করে। কাজ শেষে হিসাব বন্ধ করলে বাকি টাকা মূল ব্যালেন্সে ফিরে আসবে।','Keep a separate account for Eid, a wedding, a birthday, a trip or any special day. Start it two ways: with a new opening balance, or by transferring money from your main balance or a bank account. When you close it, whatever is left returns to your main balance.')+'</span></div>';
+  h+='<div class="oNote">'+IC.info+'<span>'+L('ঈদ, বিয়ে, জন্মদিন, ভ্রমণ বা যেকোনো বিশেষ দিনের জন্য ডেমো ব্যালেন্স দিয়ে আলাদা হিসাব রাখুন। এই হিসাব মূল ওয়ালেট থেকে সম্পূর্ণ আলাদা থাকে। শুধু সেটেলমেন্ট দিলে (PIN/বায়োমেট্রিক যাচাইয়ের পর) খরচগুলো মূল ওয়ালেটের ইতিহাসে যোগ হয়। ডেমো ব্যালেন্স মূল ওয়ালেটে যোগ হয় না।','Keep a separate demo-balance account for Eid, a wedding, a birthday or a trip. It stays fully apart from your main wallet. Only when you settle (after PIN/biometric check) are the expenses added to the main wallet history. The demo balance is never added.')+'</span></div>';
   if(!all.length){
-    return h+'<div class="oEmpty"><div class="oBig">🎁</div><b>'+L('এখনো কোনো অন্যান্য খরচ নেই','No Additional Expense accounts yet')+'</b><p>'+L('একটি উপলক্ষ্যের নাম দিন, মূল ব্যালেন্স থেকে কত টাকা নেবেন ঠিক করুন, তারপর খরচ লিখতে থাকুন।','Name the occasion, choose how much to take from your main balance, then log expenses.')+'</p><button type="button" class="oBtn" data-a="new">'+L('নতুন হিসাব খুলুন','Open a new account')+'</button></div>';
+    return h+'<div class="oEmpty"><div class="oBig">🎁</div><b>'+L('এখনো কোনো অন্যান্য খরচ নেই','No Additional Expense accounts yet')+'</b><p>'+L('একটি উপলক্ষ্যের নাম দিন, ডেমো ব্যালেন্স দিন, তারপর খরচ লিখতে থাকুন। মূল ওয়ালেটে কিছু যোগ হবে না।','Name the occasion, set a demo balance, then log expenses. Nothing touches your main wallet.')+'</p><button type="button" class="oBtn" data-a="new">'+L('নতুন হিসাব খুলুন','Open a new account')+'</button></div>';
   }
   if(act.length){ h+='<div class="oSec"><span>'+L('চালু হিসাব','Active')+' ('+act.length+')</span></div>'; act.forEach(function(o){ h+=card(o); }); }
   else h+='<div class="oEmpty" style="padding:22px 20px"><b style="font-size:15px">'+L('এখন কোনো চালু হিসাব নেই','No active account')+'</b></div>';
@@ -17450,7 +17452,7 @@ function card(o){
 }
 function srcLbl(tx){
   var s=tx.otSrc||'main';
-  if(s==='new') return L('নতুন ব্যালেন্স','new balance');
+  if(s==='new') return L('ডেমো ব্যালেন্স','demo balance');
   if(s.indexOf('acc:')===0) return L(s.slice(4)+' থেকে','from '+s.slice(4));
   return L('মূল ব্যালেন্স থেকে','from main balance');
 }
@@ -17504,10 +17506,10 @@ function vDetail(o){
     h+='<div class="oTiles">'
       +'<button type="button" class="oTile main" data-a="exp"><span class="tIc">'+XT.out+'</span>'+L('খরচ যোগ','Add expense')+'</button>'
       +'<button type="button" class="oTile" data-a="top"><span class="tIc">'+XT.add+'</span>'+L('টাকা যোগ','Add money')+'</button>'
-      +'<button type="button" class="oTile" data-a="ret"><span class="tIc">'+XT.undo+'</span>'+L('কিছু টাকা ফেরত','Return')+'</button>'
-      +'<button type="button" class="oTile dg" data-a="close"><span class="tIc">'+XT.lock+'</span>'+L('হিসাব বন্ধ','Close')+'</button></div>';
+      +(o.v===2?'':'<button type="button" class="oTile" data-a="ret"><span class="tIc">'+XT.undo+'</span>'+L('কিছু টাকা ফেরত','Return')+'</button>')
+      +'<button type="button" class="oTile dg" data-a="close"><span class="tIc">'+XT.lock+'</span>'+(o.v===2?L('সেটেল করুন','Settle'):L('হিসাব বন্ধ','Close'))+'</button></div>';
   }else{
-    h+='<div class="oBtns"><button type="button" class="oGhost" data-a="reopen">'+L('আবার চালু করুন','Reopen')+'</button><button type="button" class="oGhost" data-a="copy">'+IC.copy+L('সারাংশ কপি','Copy summary')+'</button></div>';
+    h+='<div class="oBtns">'+(o.v===2?'':'<button type="button" class="oGhost" data-a="reopen">'+L('আবার চালু করুন','Reopen')+'</button>')+'<button type="button" class="oGhost" data-a="copy">'+IC.copy+L('সারাংশ কপি','Copy summary')+'</button></div>';
   }
   if(s.spent>0) h+=trendCard(s);
   var ks=Object.keys(s.cats).sort(function(a,b){ return s.cats[b]-s.cats[a]; });
@@ -17670,16 +17672,16 @@ function vSt(w){
 function vSe(w){
   var h='';
   if(!w.o){
-    var held=0, rows='';
-    wallets().forEach(function(o){ var st=stats(o), op=isOpen(o); if(op) held+=st.left;
+    var held=0, pend=0, rows='';
+    wallets().forEach(function(o){ var st=stats(o), op=isOpen(o); if(op&&o.v!==2) held+=st.left; if(op&&o.v===2) pend+=st.spent;
       rows+='<button type="button" class="wList" data-a="wsel" data-id="'+esc(o.id)+'" data-go="se"><i>'+XT.wallet+'</i><span><b>'+esc(o.name)+'</b><small>'+(op?L('চালু','Active'):L('বন্ধ','Closed'))+' · '+L('খরচ ','Spent ')+money(st.spent)+'</small></span><em>'+money(op?st.left:0)+'</em></button>'; });
-    h+='<div class="oBox"><h4>'+L('মোট সেটেলমেন্ট','Total Settlement')+'</h4><div class="sRow"><span>'+L('মূল ব্যালেন্স','Main balance')+'</span><b>'+money(calcBalance())+'</b></div><div class="sRow big"><span>'+L('সেটেল করলে ফিরবে','Returns on settlement')+'</span><b>'+money(held)+'</b></div>'
+    h+='<div class="oBox"><h4>'+L('মোট সেটেলমেন্ট','Total Settlement')+'</h4><div class="sRow"><span>'+L('মূল ব্যালেন্স','Main balance')+'</span><b>'+money(calcBalance())+'</b></div><div class="sRow big"><span>'+L('সেটেল করলে ফিরবে','Returns on settlement')+'</span><b>'+money(held)+'</b></div>'+(pend>0.004?'<div class="sRow"><span>'+L('ডেমো ওয়ালেটের খরচ (সেটেলে মূল হিসাবে যাবে)','Demo wallet expenses (added to main on settle)')+'</span><b>'+money(pend)+'</b></div>':'')
       +(held>0.004?'<div class="sNote">'+L('চালু ওয়ালেটগুলো সেটেল করলে মোট '+money(held)+' মূল ব্যালেন্সে যোগ হবে।','Settling the active wallets adds '+money(held)+' to your main balance.')+'</div>':'<div class="sNote z">'+L('কোনো চালু ওয়ালেটে বাকি টাকা নেই, তাই মূল ব্যালেন্সে কিছু যোগ হবে না।','No active wallet has money left, so nothing will be added to your main balance.')+'</div>')+'</div>';
     h+=rows?'<div class="oBox flush">'+rows+'</div>':'<div class="oNote">'+IC.info+'<span>'+L('এখনো কোনো ওয়ালেট নেই। "+" চেপে নতুন ওয়ালেট খুলুন।','No wallets yet. Tap + to open one.')+'</span></div>';
     h+='<div class="sBtns"><button type="button" class="sBtn dk" data-a="print">'+XN.print+L('প্রিন্ট করুন','Print')+'</button></div>';
     return h;
   }
-  var o=w.o, s=w.s, op=isOpen(o), ks=Object.keys(w.cats).sort(function(a,b){ return w.cats[b]-w.cats[a]; });
+  var o=w.o; if(o.v===2) return vSe2(w); var s=w.s, op=isOpen(o), ks=Object.keys(w.cats).sort(function(a,b){ return w.cats[b]-w.cats[a]; });
   h+='<div class="oBox"><h4>'+L('মোট সেটেলমেন্ট','Total Settlement')+' · '+esc(o.name)+'</h4>'
     +'<div class="sRow"><span>'+L('মোট জমা','Total put in')+'</span><b>'+money(s.put)+'</b></div><div class="sRow"><span>'+L('মোট খরচ','Total spent')+'</span><b style="color:#ef4444">−'+money(s.spent)+'</b></div><div class="sRow"><span>'+L('মূল ব্যালেন্সে ফেরত নিয়েছেন','Already returned')+'</span><b style="color:#f59e0b">−'+money(s.ret)+'</b></div>'
     +'<div class="sRow big"><span>'+(op?L('বাকি','Left'):L('বাকি ছিল','Left'))+'</span><b>'+money(op?s.left:0)+'</b></div>'
@@ -17750,7 +17752,7 @@ function wItem(o){
 }
 function vWallets(){
   var ws=wallets(), cur=curId(), act=ws.filter(isOpen), cls=ws.filter(function(o){ return !isOpen(o); }), held=0, h='';
-  act.forEach(function(o){ held+=stats(o).left; });
+  act.forEach(function(o){ if(o.v!==2) held+=stats(o).left; });
   h+='<div class="oHero"><div class="hhTop"><span class="hhLb">'+L('মূল ব্যালেন্স','Main balance')+'</span><span class="hhGr">'+greet()+'</span></div><div class="ohBig">'+money(calcBalance())+'</div>'
     +'<div class="hhRow"><div><small>'+L('ওয়ালেটে আলাদা','Held in wallets')+'</small><b>'+money(held)+'</b></div><div><small>'+L('মোট ওয়ালেট','Wallets')+'</small><b style="color:#fff!important">'+ws.length+'</b></div></div></div>';
   if(cur){ var co=get(cur);
@@ -17781,13 +17783,16 @@ function toMain(){
 }
 function askDelWallet(id){
   var o=get(id); if(!o) return; var s=stats(o), left=isOpen(o)?s.left:0;
+  if(o.v===2){ appDialog(L('এই ওয়ালেট ও এর ডেমো রেকর্ড মুছে যাবে।'+(o.settled?' সেটেলমেন্টে মূল ওয়ালেটে যোগ হওয়া খরচ মূল হিসাবে থেকে যাবে।':' মূল ওয়ালেটে কোনো প্রভাব পড়বে না।')+' এটি আর ফেরানো যাবে না।','This wallet and its demo records will be deleted.'+(o.settled?' Expenses already settled into the main wallet stay there.':' Your main wallet is not affected.')+' This cannot be undone.')+'\n\n'+o.name,{confirm:true,yes:L('মুছুন','Delete')},function(){ doDelWallet(id); }); return; }
   var msg=L('এই ওয়ালেট এবং এর সব খরচের রেকর্ড মুছে যাবে।','This wallet and all of its expense records will be deleted.')
     +(left>0.004?' '+L('বাকি '+money(left)+' মূল ব্যালেন্সে ফিরে যাবে।','The remaining '+money(left)+' goes back to your main balance.'):'')
     +' '+L('এটি আর ফেরানো যাবে না।','This cannot be undone.');
   appDialog(msg+'\n\n'+o.name,{confirm:true,yes:L('মুছুন','Delete')},function(){ doDelWallet(id); });
 }
 function doDelWallet(id){
-  var o=get(id); if(!o) return; var s=stats(o), txs=data.transactions.slice();
+  var o=get(id); if(!o) return;
+  if(o.v===2){ data.oneTime=list().filter(function(x){ return x.id!==o.id; }); if(data.otActive===o.id) delete data.otActive; if(S.sel===o.id) S.sel=''; S.page='list'; saveData(); refresh(); render(); say(L('ওয়ালেট মোছা হয়েছে','Wallet deleted')); return; }
+  var s=stats(o), txs=data.transactions.slice();
   if(isOpen(o)&&s.left>0.004) txs.push(mkTx('use_from_account',s.left,{account:o.acc,note:L('ওয়ালেট মোছা হয়েছে — বাকি টাকা মূল ব্যালেন্সে ফেরত: ','Wallet deleted — remaining returned: ')+o.name}));
   txs=txs.filter(function(x){ return x.fund!==o.acc; });   /* the wallet's own expenses; transfers stay so the main balance stays correct */
   var bad=''; try{ bad=validateTxSet(txs); }catch(e){}
@@ -17904,9 +17909,9 @@ function commitMany(txs){
 }
 function openNew(){
   S.ctx={mode:'new'};
-  showSheet('<h3>'+L('নতুন অন্যান্য খরচ হিসাব','New Additional Expense account')+'</h3><p class="oSub">'+L('নতুন টাকা দিয়ে শুরু করুন, অথবা মূল ব্যালেন্স/ব্যাংক থেকে ট্রান্সফার করুন।','Start with new money, or transfer from your main balance or a bank account.')+'</p>'
+  showSheet('<h3>'+L('নতুন অন্যান্য খরচ হিসাব','New Additional Expense account')+'</h3><p class="oSub">'+L('ডেমো ব্যালেন্স দিয়ে আলাদা ওয়ালেট খুলুন।','Open a separate wallet with a demo balance.')+'</p>'
     +'<div class="oLb"><span>'+L('উপলক্ষ্যের নাম','Occasion name')+'</span></div><input class="oIn" id="oName" maxlength="40" placeholder="'+L('যেমন: ঈদ ২০২৬, বোনের বিয়ে','e.g. Eid 2026, Sister\'s wedding')+'">'
-    +srcField(null)
+    +'<div class="oNote">'+IC.info+'<span>'+L('এটি ডেমো ব্যালেন্স। মূল ওয়ালেটের সাথে এর কোনো হিসাব থাকবে না। সেটেলমেন্ট দিলে শুধু খরচগুলো মূল ওয়ালেটে যোগ হবে।','This is a demo balance with no link to your main wallet. When you settle, only the expenses are added to the main wallet.')+'</span></div>'
     +amtField('oAmt',L('শুরুর টাকা','Opening amount'),0)
     +'<div class="oLb"><span>'+L('নোট (ঐচ্ছিক)','Note (optional)')+'</span></div><input class="oIn" id="oNoteIn" maxlength="80" placeholder="'+L('যেমন: কেনাকাটা ও বাজার','e.g. shopping & groceries')+'">'
     +'<div class="oErr" id="oErr"></div><button type="button" class="oBtn" data-a="mk">'+L('হিসাব খুলুন','Open account')+'</button>');
@@ -17916,10 +17921,8 @@ function saveNew(){
   if(!name) return err(L('উপলক্ষ্যের নাম লিখুন','Enter a name'));
   if(accNameTaken(name)) return err(L('এই নামে আগে থেকেই একটি একাউন্ট/হিসাব আছে, অন্য নাম দিন','An account with this name already exists'));
   if(!amt) return err(L('শুরুর টাকা লিখুন','Enter the opening amount'));
-  var o={id:'ot'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:name,acc:name,emoji:'',note:note,opened:todayStr(),status:'open',ts:Date.now()};
-  var r=fundTxs(o,amt,true); if(r.err) return err(r.err);
-  if(!commitMany(r.txs)) return;
-  if((data.accounts||[]).indexOf(o.acc)<0) data.accounts.push(o.acc);
+  var o={id:'ot'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:name,acc:name,emoji:'',note:note,opened:todayStr(),status:'open',ts:Date.now(),v:2,led:[]};
+  o.led.push(mkTx('save_to_account',amt,{account:o.acc,otSrc:'new',note:L('ডেমো ওপেনিং ব্যালেন্স','Demo opening balance')}));
   list().push(o); saveData(); closeSheet(); S.sel=o.id; S.page='wallet'; S.tab='home'; refresh(); render(); say(L('হিসাব খোলা হয়েছে','Account opened'));
 }
 var XI={
@@ -17974,19 +17977,20 @@ function saveExp(){
   if(!amt) return err(L('টাকার পরিমাণ লিখুন','Enter an amount'));
   var dd=todayStr(), tt=nowTime(); if(!(S.ctx&&S.ctx.auto)){ dd=($('oDt').value||dd); tt=($('oTm').value||tt); }
   var tx=mkTx('expense',amt,{category:($('oCat').value||'').trim()||L('অন্যান্য','Other'),fund:o.acc,note:($('oNoteIn').value||'').trim(),qty:(($('oQty')||{}).value||'').trim(),date:dd,time:tt});
-  if(!commit(tx)) return;
+  if(o.v===2){ tx.fund=null; o.led.push(tx); } else if(!commit(tx)) return;
   saveData(); closeSheet(); refresh(); render(); var dn2=stats(o).left; say(dn2<-0.004?L('খরচ যোগ হয়েছে · বকেয়া '+money(-dn2),'Expense added · Due '+money(-dn2)):L('খরচ যোগ হয়েছে','Expense added'));
 }
 function openTop(){
   var o=get(S.sel); if(!o) return; S.ctx={mode:'new'};
   showSheet('<h3>'+L('হিসাবে টাকা যোগ','Add money')+'</h3><p class="oSub">'+esc(o.name)+'</p>'
-    +srcField(o)
+    +(o.v===2?'<p class="oSub">'+L('এটি ডেমো ব্যালেন্স — মূল ওয়ালেটে কোনো প্রভাব পড়বে না।','This is demo balance — it does not touch your main wallet.')+'</p>':srcField(o))
     +amtField('oAmt','0',0)
     +'<div class="oErr" id="oErr"></div><button type="button" class="oBtn" data-a="topSave">'+L('টাকা যোগ করুন','Add money')+'</button>');
 }
 function saveTop(){
   var o=get(S.sel); if(!o) return; var amt=num($('oAmt').value);
   if(!amt) return err(L('টাকার পরিমাণ লিখুন','Enter an amount'));
+  if(o.v===2){ o.led.push(mkTx('save_to_account',amt,{account:o.acc,otSrc:'new',note:L('ডেমো ব্যালেন্স যোগ','Demo balance added')})); saveData(); closeSheet(); render(); say(L('ডেমো ব্যালেন্স যোগ হয়েছে','Demo balance added')); return; }
   var r=fundTxs(o,amt,false); if(r.err) return err(r.err);
   if(!commitMany(r.txs)) return;
   saveData(); closeSheet(); refresh(); render(); say(L('টাকা যোগ হয়েছে','Money added'));
@@ -18008,7 +18012,7 @@ function saveRet(){
   saveData(); closeSheet(); refresh(); render(); say(L('মূল ব্যালেন্সে ফেরত গেছে','Returned to main balance'));
 }
 function askClose(){
-  var o=get(S.sel); if(!o) return; var s=stats(o);
+  var o=get(S.sel); if(!o) return; if(o.v===2){ openSettle(o); return; } var s=stats(o);
   var msg=s.left<-0.004
     ? L('এই হিসাব সেটেল করবেন?\n\n'+money(-s.left)+' বকেয়া আছে। মূল অ্যাপের ঋণ (Loan) তালিকায় "'+o.name+' (due)" নামে '+money(-s.left)+' ঋণ তৈরি হবে।','Settle this account?\n\n'+money(-s.left)+' is due. A loan named "'+o.name+' (due)" for '+money(-s.left)+' will be created in your main Loans.')
     : s.left>0.004
@@ -18038,19 +18042,124 @@ function doClose(id){
   saveData(); refresh(); render(); say(L('হিসাব বন্ধ হয়েছে','Account closed'));
 }
 function doReopen(){
-  var o=get(S.sel); if(!o||isOpen(o)) return;
+  var o=get(S.sel); if(!o||isOpen(o)||o.v===2) return;
   if((data.accounts||[]).indexOf(o.acc)>-1){ warn(L('এই নামে এখন আরেকটি একাউন্ট আছে। আগে সেটির নাম বদলান।','Another account with this name exists now.')); return; }
   o.status='open'; delete o.closedAt; o.ts=Date.now(); data.accounts.push(o.acc);
   saveData(); refresh(); render(); say(L('হিসাব আবার চালু হয়েছে','Account reopened'));
 }
 function askDel(id){
-  var o=get(S.sel); if(!o) return; var tx=null; data.transactions.forEach(function(x){ if(x.id===id) tx=x; }); if(!tx) return;
+  var o=get(S.sel); if(!o) return; var tx=null, v2=o.v===2;
+  (v2?(o.led||[]):data.transactions).forEach(function(x){ if(x.id===id) tx=x; }); if(!tx) return;
   appDialog(L('এই খরচটি মুছে ফেলবেন?','Delete this expense?')+'\n\n'+(tx.category||'')+' · '+money(tx.amount),{confirm:true,yes:L('মুছুন','Delete')},function(){
+    if(v2){ o.led=o.led.filter(function(x){ return x.id!==id; }); saveData(); render(); say(L('খরচ মোছা হয়েছে','Expense deleted')); return; }
     var rest=data.transactions.filter(function(x){ return x.id!==id; }), bad=''; try{ bad=validateTxSet(rest); }catch(e){}
     if(bad){ warn(bad); return; }
     data.transactions=rest; saveData(); refresh(); render(); say(L('খরচ মোছা হয়েছে','Expense deleted'));
   });
 }
+/* ===== v2: সম্পূর্ণ আলাদা ডেমো খাতা। সেটেলমেন্টের আগে মূল ওয়ালেটে কিছু যায় না ===== */
+function stats2(o){
+  var put=0, spent=0, cats={}, led=[];
+  (o.led||[]).forEach(function(x){
+    if(x.type==='save_to_account'){ put+=x.amount; led.push(x); }
+    else { spent+=x.amount; led.push(x); var c=x.category||L('অন্যান্য','Other'); cats[c]=(cats[c]||0)+x.amount; }
+  });
+  led.sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
+  return {put:r2(put), ret:0, spent:r2(spent), left:r2(put-spent), cats:cats, led:led};
+}
+function newLoanId(){ return 'LN-'+Date.now().toString(36).slice(-4).toUpperCase()+Math.random().toString(36).slice(2,4).toUpperCase(); }
+function srcName(st){
+  if(!st) return '';
+  if(st.src==='loan') return L('লোন','Loan')+' · '+(st.loanName||'');
+  if(st.src==='bank') return st.bank||L('ব্যাংক','Bank');
+  if(st.src==='main') return L('মূল ব্যালেন্স','Main balance');
+  return L('কোনো খরচ ছিল না','No expenses');
+}
+function vSe2(w){
+  var o=w.o, s=w.s, op=isOpen(o), h='', ks=Object.keys(w.cats).sort(function(a,b){ return w.cats[b]-w.cats[a]; });
+  h+='<div class="oBox"><h4>'+L('সেটেলমেন্ট','Settlement')+' · '+esc(o.name)+'</h4>'
+    +'<div class="sRow"><span>'+L('ডেমো ব্যালেন্স (মোট জমা)','Demo balance put in')+'</span><b>'+money(s.put)+'</b></div>'
+    +'<div class="sRow"><span>'+L('মোট খরচ','Total spent')+'</span><b style="color:#ef4444">−'+money(s.spent)+'</b></div>'
+    +'<div class="sRow big"><span>'+L('ডেমোতে বাকি','Demo left')+'</span><b>'+money(s.left)+'</b></div>'
+    +(op?'<div class="sNote">'+L('সেটেলমেন্ট দিলে '+money(s.spent)+' খরচ মূল ওয়ালেটের ইতিহাসে যোগ হবে। ডেমো ব্যালেন্স যোগ হবে না।','Settling adds '+money(s.spent)+' of expenses to your main wallet history. The demo balance is not added.')+'</div>'
+        :'<div class="sNote z">'+L('সেটেল হয়েছে ('+fdate(o.closedAt)+') · উৎস: ','Settled ('+fdate(o.closedAt)+') · Source: ')+esc(srcName(o.settled))+(o.settled&&o.settled.src==='loan'?' · '+L('লোন আইডি ','Loan ID ')+esc(o.settled.loanId):'')+'</div>')+'</div>';
+  if(ks.length) h+='<div class="oBox"><h4>'+L('খাত অনুযায়ী','By category')+'</h4>'+ks.map(function(k){ return '<div class="sRow"><span>'+esc(k)+'</span><b>'+money(w.cats[k])+'</b></div>'; }).join('')+'</div>';
+  if(op) h+='<div class="sBtns"><button type="button" class="sBtn" data-a="top">'+L('ডেমো ব্যালেন্স যোগ','Add demo balance')+'</button><button type="button" class="sBtn red" data-a="close">'+L('সেটেলমেন্ট করুন','Settle')+'</button><button type="button" class="sBtn dk" data-a="print">'+XN.print+L('প্রিন্ট করুন','Print')+'</button></div>';
+  else h+='<div class="sBtns"><div class="oBtns"><button type="button" class="sBtn" data-a="copy">'+IC.copy+L('কপি','Copy')+'</button><button type="button" class="sBtn dk" data-a="print">'+XN.print+L('প্রিন্ট','Print')+'</button></div></div>';
+  return h;
+}
+function settleInfo(){
+  var c=S.ctx||{}, o=get(S.sel); if(!o) return '';
+  if(c.src==='bank') return L('নির্বাচিত ব্যাংক/একাউন্ট থেকে '+money(c.total)+' খরচ হিসেবে কাটা হবে।','Expenses of '+money(c.total)+' will be taken from the chosen account.');
+  if(c.src==='loan') return L('লোন আইডি '+c.loanId+' · "'+o.name+' · '+c.loanId+'" নামে '+money(c.total)+' লোন তৈরি হবে, সেই লোনের টাকায় সেটেলমেন্ট হবে।','Loan ID '+c.loanId+' · a loan "'+o.name+' · '+c.loanId+'" of '+money(c.total)+' will be created and used to settle.');
+  return L('মূল ব্যালেন্স থেকে '+money(c.total)+' কাটা হবে (এখন আছে '+money(c.bal)+')।','Expenses of '+money(c.total)+' will be taken from your main balance (now '+money(c.bal)+').');
+}
+function hasLock(){
+  try{ return (localStorage.getItem('appLockEnabled_v1')==='true'&&!!localStorage.getItem('appLockCredId_v1'))||(localStorage.getItem('appPinEnabled_v1')==='true'&&!!localStorage.getItem('appPinHash_v1')); }catch(e){ return false; }
+}
+/* true = যাচাই ঠিক আছে, false = বাতিল/ভুল, 'nolock' = অ্যাপে কোনো লক চালু নেই */
+async function verifyUser(){
+  var bioOn=false, cred=null, pinOn=false, pinH=null;
+  try{ bioOn=localStorage.getItem('appLockEnabled_v1')==='true'; cred=localStorage.getItem('appLockCredId_v1'); pinOn=localStorage.getItem('appPinEnabled_v1')==='true'; pinH=localStorage.getItem('appPinHash_v1'); }catch(e){}
+  var hasBio=!!(bioOn&&cred&&isBiometricSupported()), hasPin=!!(pinOn&&pinH);
+  if(!hasBio&&!hasPin) return 'nolock';
+  if(hasBio){
+    try{ await navigator.credentials.get({ publicKey:{ challenge:crypto.getRandomValues(new Uint8Array(32)), allowCredentials:[{ id:b64urlDecode(cred), type:'public-key' }], userVerification:'required', timeout:60000 }}); return true; }
+    catch(e){ if(!hasPin) return false; }
+  }
+  var pin=await askInput({ title:L('সেটেলমেন্ট যাচাই','Verify settlement'), note:L('সেটেলমেন্ট নিশ্চিত করতে পিন দিন','Enter your PIN to confirm settlement'), type:'password', inputmode:'numeric', maxlength:6, center:true, okText:L('নিশ্চিত করুন','Confirm') });
+  if(pin===null) return false;
+  return await checkPin(pin);
+}
+function closeEmpty(o){
+  o.status='closed'; o.closedAt=todayStr(); o.ts=Date.now(); o.settled={at:todayStr(),src:'none',total:0};
+  if(data.otActive===o.id) delete data.otActive;
+  saveData(); refresh(); render(); say(L('ওয়ালেট বন্ধ হয়েছে','Wallet closed'));
+}
+function openSettle(o){
+  var s=stats(o);
+  if(s.spent<=0.004){ appDialog(L('কোনো খরচ নেই। ওয়ালেট বন্ধ করবেন? মূল ওয়ালেটে কিছু যোগ হবে না।','No expenses. Close this wallet? Nothing is added to your main wallet.'),{confirm:true,yes:L('বন্ধ করুন','Close')},function(){ closeEmpty(o); }); return; }
+  var bal=calcBalance(), ab={}; try{ ab=calcAccountBalances(); }catch(e){}
+  S.ctx={src:'main',loanId:newLoanId(),total:s.spent,bal:bal};
+  var banks=(data.accounts||[]).filter(function(a){ return !(window.ftOneTime&&window.ftOneTime.isOT(a)); });
+  var opts=banks.map(function(a){ return '<option value="'+esc(a)+'">'+esc(a)+' ('+money(ab[a]||0)+')</option>'; }).join('');
+  showSheet('<h3>'+L('সেটেলমেন্ট','Settlement')+'</h3><p class="oSub">'+esc(o.name)+'</p>'
+    +'<div class="sRow big"><span>'+L('মূল ওয়ালেটে যোগ হবে (মোট খরচ)','Added to main wallet (total expenses)')+'</span><b>'+money(s.spent)+'</b></div>'
+    +'<div class="sNote">'+L('ডেমো ব্যালেন্স ('+money(s.put)+') মূল ওয়ালেটে যোগ হবে না। শুধু খরচের তালিকা মূল ইতিহাসে যাবে।','The demo balance ('+money(s.put)+') is not added. Only the expense list goes into your main history.')+'</div>'
+    +'<div class="oLb"><span>'+L('কোন উৎস থেকে টাকা যাবে','Pay from')+'</span></div>'
+    +'<div class="oSeg"><button type="button" class="on" data-a="ssrc" data-v="main">'+L('মূল ব্যালেন্স','Main')+'</button><button type="button" data-a="ssrc" data-v="bank"'+(opts?'':' disabled')+'>'+L('ব্যাংক','Bank')+'</button><button type="button" data-a="ssrc" data-v="loan">'+L('লোন','Loan')+'</button></div>'
+    +'<div id="oBankW" style="display:none"><select class="oIn" id="oBank">'+opts+'</select></div>'
+    +'<div class="sNote" id="oSrcInfo">'+esc(settleInfo())+'</div>'
+    +(hasLock()?'':'<div class="sNote z">'+L('অ্যাপে PIN/বায়োমেট্রিক লক চালু নেই, তাই যাচাই ছাড়াই সেটেল হবে। সেটিংসে লক চালু করলে সেটেলমেন্টে যাচাই লাগবে।','No PIN/biometric lock is set, so settlement runs without a check. Turn on the app lock in Settings to require verification.')+'</div>')
+    +'<div class="oErr" id="oErr"></div><button type="button" class="oBtn" data-a="setGo">'+L('যাচাই করে সেটেল করুন','Verify & settle')+'</button>');
+}
+async function doSettle(){
+  var o=get(S.sel); if(!o||!isOpen(o)||o.v!==2||!S.ctx) return;
+  var c=S.ctx, src=c.src||'main', exps=(o.led||[]).filter(function(x){ return x.type==='expense'&&!x.settled; });
+  var total=r2(exps.reduce(function(a,x){ return a+x.amount; },0));
+  if(!exps.length||total<=0) return err(L('সেটেল করার মতো খরচ নেই','No expenses to settle'));
+  var bank='';
+  if(src==='bank'){ bank=($('oBank')||{}).value||''; if(!bank) return err(L('একটি ব্যাংক/একাউন্ট বেছে নিন','Choose an account')); }
+  if(src==='main'){ var bal=calcBalance(); if(total>bal+0.005) return err(L('মূল ব্যালেন্সে মাত্র '+money(bal)+' আছে। ব্যাংক বা লোন বেছে নিন।','Main balance is only '+money(bal)+'. Choose bank or loan.')); }
+  if(src==='bank'){ var ab=0; try{ ab=calcAccountBalances()[bank]||0; }catch(e){} if(total>ab+0.005) return err(L('"'+bank+'" একাউন্টে মাত্র '+money(ab)+' আছে','"'+bank+'" has only '+money(ab))); }
+  var loanId=c.loanId||newLoanId(), loanName=o.name+' · '+loanId, txs=[];
+  if(src==='loan') txs.push(mkTx('loan_taken',total,{person:loanName,due:null,note:L('অন্যান্য খরচ সেটেলমেন্ট লোন (আইডি '+loanId+'): ','Additional Expense settlement loan (ID '+loanId+'): ')+o.name}));
+  exps.forEach(function(x){
+    txs.push(mkTx('expense',x.amount,{category:x.category||L('অন্যান্য','Other'),note:o.name+(x.note?' — '+x.note:''),qty:x.qty||'',date:x.date,time:x.time,fund:src==='bank'?bank:null,otWallet:o.id}));
+  });
+  var bad=''; try{ bad=validateTxSet(data.transactions.concat(txs)); }catch(e){}
+  if(bad) return err(bad);
+  var v=await verifyUser();
+  if(v===false) return err(L('যাচাই হয়নি, সেটেলমেন্ট বাতিল','Verification failed, settlement cancelled'));
+  o=get(S.sel); if(!o||!isOpen(o)) return;
+  txs.forEach(function(x){ data.transactions.push(x); });
+  exps.forEach(function(x){ x.settled=true; });
+  o.status='closed'; o.closedAt=todayStr(); o.ts=Date.now();
+  o.settled={at:todayStr(),src:src,bank:bank,loanId:src==='loan'?loanId:'',loanName:src==='loan'?loanName:'',total:total};
+  if(data.otActive===o.id) delete data.otActive;
+  saveData(); closeSheet(); refresh(); render(); say(L('সেটেলমেন্ট সম্পন্ন','Settlement done'));
+}
+
 /* ---- events ---- */
 function onClick(e){
   var b=e.target.closest('[data-a]'); if(!b) return; var a=b.getAttribute('data-a');
@@ -18090,6 +18199,8 @@ function onClick(e){
     case 'ret': openRet(); break;
     case 'retSave': saveRet(); break;
     case 'close': askClose(); break;
+    case 'ssrc': if(S.ctx){ S.ctx.src=b.getAttribute('data-v'); [].forEach.call(document.querySelectorAll('#ftOtOv .oSeg button'),function(c){ c.classList.toggle('on',c===b); }); var bw=$('oBankW'); if(bw) bw.style.display=S.ctx.src==='bank'?'block':'none'; var si=$('oSrcInfo'); if(si) si.textContent=settleInfo(); } break;
+    case 'setGo': doSettle(); break;
     case 'reopen': doReopen(); break;
     case 'del': askDel(b.getAttribute('data-id')); break;
     case 'switch': doSwitch(b.getAttribute('data-id')); break;
