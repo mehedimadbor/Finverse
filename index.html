@@ -17208,6 +17208,13 @@ body.ftOtOpen #bottomNav{display:none!important}
 #ftOtOv .oLeg span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #ftOtOv .sRow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;font-size:14.5px}
 #ftOtOv .sRow+.sRow{border-top:1px solid color-mix(in srgb,var(--text) 8%,transparent)}
+#ftOtOv #oSheet .oNote{margin:14px 0 4px;box-sizing:border-box;width:100%}
+#ftOtOv #oSheet .sNote{margin:10px 0 4px;padding:12px 14px;border-radius:18px;background:var(--gr);font-size:13px;line-height:1.5;color:var(--muted)}
+#ftOtOv #oSheet .sNote.z{color:var(--muted)}
+#ftOtOv #oSheet .sRow.big{margin-top:8px;padding:12px 14px;border-radius:18px;background:var(--gr);font-weight:800}
+#ftOtOv #oSheet .oSeg{margin-bottom:6px}
+#ftOtOv #oSheet #oBankW{margin:8px 0}
+#ftOtOv #oSheet .oErr{margin:8px 2px 0}
 #ftOtOv .sRow b{font-weight:800}
 #ftOtOv .sRow.big{font-size:17px}
 #ftOtOv .sRow.big b{color:#22c55e;font-size:22px}
@@ -18117,6 +18124,7 @@ function closeEmpty(o){
   saveData(); refresh(); render(); say(L('ওয়ালেট বন্ধ হয়েছে','Wallet closed'));
 }
 function openSettle(o){
+  if(!hasLock()){ warn(L('সেটেলমেন্টের জন্য PIN বা বায়োমেট্রিক লক চালু থাকতে হবে। আগে সেটিংস থেকে অ্যাপ লক চালু করুন, তারপর সেটেল করুন।','Settlement needs PIN or biometric lock. Turn on the app lock in Settings first, then settle.')); return; }
   var s=stats(o);
   if(s.spent<=0.004){ appDialog(L('কোনো খরচ নেই। ওয়ালেট বন্ধ করবেন? মূল ওয়ালেটে কিছু যোগ হবে না।','No expenses. Close this wallet? Nothing is added to your main wallet.'),{confirm:true,yes:L('বন্ধ করুন','Close')},function(){ closeEmpty(o); }); return; }
   var bal=calcBalance(), ab={}; try{ ab=calcAccountBalances(); }catch(e){}
@@ -18130,7 +18138,6 @@ function openSettle(o){
     +'<div class="oSeg"><button type="button" class="on" data-a="ssrc" data-v="main">'+L('মূল ব্যালেন্স','Main')+'</button><button type="button" data-a="ssrc" data-v="bank"'+(opts?'':' disabled')+'>'+L('ব্যাংক','Bank')+'</button><button type="button" data-a="ssrc" data-v="loan">'+L('লোন','Loan')+'</button></div>'
     +'<div id="oBankW" style="display:none"><select class="oIn" id="oBank">'+opts+'</select></div>'
     +'<div class="sNote" id="oSrcInfo">'+esc(settleInfo())+'</div>'
-    +(hasLock()?'':'<div class="sNote z">'+L('অ্যাপে PIN/বায়োমেট্রিক লক চালু নেই, তাই যাচাই ছাড়াই সেটেল হবে। সেটিংসে লক চালু করলে সেটেলমেন্টে যাচাই লাগবে।','No PIN/biometric lock is set, so settlement runs without a check. Turn on the app lock in Settings to require verification.')+'</div>')
     +'<div class="oErr" id="oErr"></div><button type="button" class="oBtn" data-a="setGo">'+L('যাচাই করে সেটেল করুন','Verify & settle')+'</button>');
 }
 async function doSettle(){
@@ -18150,6 +18157,7 @@ async function doSettle(){
   var bad=''; try{ bad=validateTxSet(data.transactions.concat(txs)); }catch(e){}
   if(bad) return err(bad);
   var v=await verifyUser();
+  if(v==='nolock') return err(L('PIN/বায়োমেট্রিক লক চালু নেই, সেটেলমেন্ট করা যাবে না','App lock is off, settlement is not allowed'));
   if(v===false) return err(L('যাচাই হয়নি, সেটেলমেন্ট বাতিল','Verification failed, settlement cancelled'));
   o=get(S.sel); if(!o||!isOpen(o)) return;
   txs.forEach(function(x){ data.transactions.push(x); });
