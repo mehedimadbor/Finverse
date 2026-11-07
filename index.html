@@ -14,6 +14,56 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>Finverse</title>
+<script id="ftCurCore">
+/* ===== Currency core: chosen currency symbol used app-wide (loaded first) ===== */
+(function(){
+  var K='ftCurrency_v1';
+  var cur={code:'BDT',sym:'৳'};
+  try{ var v=JSON.parse(localStorage.getItem(K)||'null'); if(v&&v.code&&v.sym) cur=v; }catch(e){}
+  var symOf=function(code){
+    if(code==='BDT') return '৳';
+    try{
+      var p=new Intl.NumberFormat('en',{style:'currency',currency:code,currencyDisplay:'narrowSymbol'}).formatToParts(1);
+      for(var i=0;i<p.length;i++) if(p[i].type==='currency') return p[i].value;
+    }catch(e){}
+    return code;
+  };
+  window.ftCurCode=function(){ return cur.code; };
+  window.ftCurRawSym=function(){ return cur.sym; };
+  window.ftCurSym=function(){ return /^[A-Za-z]/.test(cur.sym)?cur.sym+'\u00A0':cur.sym; };
+  window.ftCurLocale=function(){ return ['BDT','INR','PKR','NPR','LKR'].indexOf(cur.code)>-1?'en-IN':'en-US'; };
+  window.ftCurSymOf=symOf;
+  window.ftSetCurrency=function(code){
+    var o={code:code,sym:symOf(code)};
+    try{ localStorage.setItem(K,JSON.stringify(o)); }catch(e){}
+    location.reload();
+  };
+  /* every ৳ that is written straight into the page (labels, placeholders) is swapped for the chosen symbol */
+  if(cur.code!=='BDT'){
+    var rep=function(t){ return t.split('৳').join(window.ftCurSym()); };
+    var fixNode=function(n){
+      try{
+        if(n.nodeType===3){ if(n.nodeValue.indexOf('৳')>-1) n.nodeValue=rep(n.nodeValue); return; }
+        if(n.nodeType!==1||/^(SCRIPT|STYLE|TEXTAREA)$/.test(n.tagName)) return;
+        var ph=n.getAttribute&&n.getAttribute('placeholder'); if(ph&&ph.indexOf('৳')>-1) n.setAttribute('placeholder',rep(ph));
+        for(var c=n.firstChild;c;c=c.nextSibling) fixNode(c);
+      }catch(e){}
+    };
+    var go=function(){
+      fixNode(document.body);
+      new MutationObserver(function(ms){
+        ms.forEach(function(m){
+          if(m.type==='characterData') fixNode(m.target);
+          else if(m.type==='attributes') fixNode(m.target);
+          else m.addedNodes.forEach(fixNode);
+        });
+      }).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder']});
+    };
+    if(document.body) go(); else document.addEventListener('DOMContentLoaded',go);
+  }
+})();
+</script>
+
 <script>window.__ftIP=null;window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__ftIP=e;try{window.dispatchEvent(new Event('ftInstallReady'));}catch(_){}});</script>
 <script>try{var d=document.documentElement;if(localStorage.getItem("loginDone_v1")==="true")d.classList.add("hasUser");var th=localStorage.getItem("appTheme_v1");if(th)d.setAttribute("data-theme",th);d.classList.add("booting");setTimeout(function(){d.classList.remove("booting")},2500)}catch(e){}</script>
 <script>try{var L=localStorage,D=document.documentElement;if(L.getItem("loginDone_v1")==="true"&&(L.getItem("appPinEnabled_v1")==="true"||(L.getItem("appLockEnabled_v1")==="true"&&L.getItem("appLockCredId_v1")&&window.PublicKeyCredential&&navigator.credentials)))D.classList.add("locked")}catch(e){}</script>
@@ -318,6 +368,8 @@ details.gsetup summary::-webkit-details-marker{display:none;}
   *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
   html,body{background:#fff !important; margin:0 !important; padding:0 !important; height:auto !important; min-height:0 !important; overflow:visible !important; position:static !important;}
   body > *:not(#printArea){display:none !important;}
+  html:root:root:root,html:root:root:root body{background:#fff !important; background-image:none !important;}
+  body::before,body::after,html::before,html::after{display:none !important; content:none !important; background:none !important;}
   #printArea{
     display:block !important; position:static !important; padding:0 !important; margin:0 !important;
     --bg:#ffffff; --card:#ffffff; --text:#1a1c1e; --muted:#6b7280; --border:#e5e7eb;
@@ -2806,7 +2858,7 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
   var KEY='calcDraft_v1', items=[], flt=0, editIdx=null, lastDel=null, shown=0, tw=null;
   function load(){try{var v=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(v))return[];return v.filter(function(x){return x&&typeof x==='object'&&isFinite(x.a)&&x.a>0}).map(function(x){return{n:String(x.n==null?'':x.n),a:+x.a,s:x.s>0?1:-1,x:x.x?String(x.x):''}})}catch(e){return[]}}
   function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}}
-  function money(n){return (typeof fmt==='function')?fmt(n):'৳'+Math.round(n*100)/100}
+  function money(n){return (typeof fmt==='function')?fmt(n):ftCurSym()+Math.round(n*100)/100}
   function bnL(){return typeof currentLang!=='undefined'&&currentLang==='bn'}
   function $(i){return document.getElementById(i)}
   function num(str){
@@ -3092,7 +3144,7 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <div class="setVer">Finverse</div>
   </div>
   <div class="box">
-    <h3 data-i18n="settings_theme">থিম</h3>
+    <h3 data-i18n="settings_theme">থিম ও অ্যাপিয়ারেন্স</h3>
     <div class="themerow" id="themeRow">
       <div class="swatch" data-theme="" style="background:linear-gradient(135deg,#f4f5f7,#2563eb);" title="Classic"></div>
       <div class="swatch" data-theme="red-black" style="background:linear-gradient(135deg,#0d0d0d,#e11d2e);" title="Red-Black"></div>
@@ -3164,11 +3216,11 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     </div>
   </div>
   <div class="box" id="bdSetBox">
-    <h3><span class="bn">ইমারজেন্সি হেল্প (রক্তদাতা)</span><span class="en">Emergency help (blood donor)</span></h3>
+    <h3><span class="bn">রক্তদাতা নেটওয়ার্ক</span><span class="en">Blood Donor Network</span></h3>
     <div id="bdSetBody"></div>
   </div>
   <div class="box" id="inviteBox">
-    <h3><span class="bn">বন্ধুদের ইনভাইট করুন</span><span class="en">Invite friends</span></h3>
+    <h3><span class="bn">বন্ধুকে রেফার করুন</span><span class="en">Refer a Friend</span></h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;"><span class="bn">আপনার লিংক শেয়ার করুন। বন্ধু লিংকে ঢুকে Google দিয়ে অ্যাকাউন্ট খুললেই আপনার সাথে চ্যাটে নিজে থেকে যুক্ত হয়ে যাবে।</span><span class="en">Share your link. When a friend opens it and signs up with Google, they are added to your chat automatically.</span></p>
     <input type="text" id="invLink" readonly onclick="this.select()">
     <button type="button" class="typebtn sel" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="ftInvite.share()"><i class="mi" style="--m:var(--ic-share); width:18px; height:18px; flex:none;"></i><span class="bn">ইনভাইট পাঠান</span><span class="en">Send invite</span></button>
@@ -3179,18 +3231,18 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <div class="invHint" id="invHint"><span class="bn">ইনভাইট লিংক পেতে আগে অ্যাকাউন্ট খুলুন বা লগইন করুন (গেস্ট মোডে চ্যাট চলে না)।</span><span class="en">Create an account or log in to get your invite link (chat does not work in guest mode).</span></div>
   </div>
   <div class="box" id="installBox">
-    <h3><span class="bn">অ্যাপ ইনস্টল করুন</span><span class="en">Install the app</span></h3>
+    <h3><span class="bn">অ্যাপ ইনস্টলেশন</span><span class="en">App Installation</span></h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 10px;"><span class="bn">হোম স্ক্রিনে অ্যাপ হিসেবে যোগ করুন — এক ট্যাপে ইনস্টল, দ্রুত খোলে, ফুল-স্ক্রিনে চলে।</span><span class="en">Add Finverse to your home screen as an app. One tap to install, opens fast, runs full screen.</span></p>
     <div id="ftInSt" class="invHint" style="display:block; margin-bottom:10px;"></div>
     <button type="button" class="typebtn sel" id="ftInBtn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="ftInstall.open()"><i class="mi" style="--m:var(--ic-download); width:18px; height:18px; flex:none;"></i><span class="bn">এখনই ইনস্টল করুন</span><span class="en">Install now</span></button>
   </div>
   <div class="box" id="ntBox">
-    <h3><span class="bn">নোটিফিকেশন স্ট্যাটাস</span><span class="en">Notification status</span></h3>
+    <h3><span class="bn">নোটিফিকেশন অনুমতি</span><span class="en">Notification Permissions</span></h3>
     <div class="ntStat" id="ntStat"></div>
     <button type="button" class="typebtn sel" style="width:100%;margin-top:10px;" onclick="ftTg.check()"><span class="bn">এখনই চেক করুন</span><span class="en">Check now</span></button>
   </div>
   <div class="box">
-    <h3 data-i18n="backup_heading">লোকাল ব্যাকআপ</h3>
+    <h3 data-i18n="backup_heading">ব্যাকআপ ও রিস্টোর</h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px;" data-i18n="backup_note">এই অ্যাপের কোনো সার্ভার নেই — আপনার সব হিসাব শুধু এই ফোনেই থাকে। নিয়মিত একটা ব্যাকআপ ফাইল ডাউনলোড করে রাখুন (Google Drive, ফাইল ম্যানেজার বা যেকোনো জায়গায় সংরক্ষণ করতে পারেন), অন্য ফোনে বা অ্যাপ রিসেট হলে সেই ফাইল দিয়ে সব ফিরিয়ে আনতে পারবেন।</p>
     <div class="row2">
       <button class="typebtn" onclick="downloadBackup()" data-i18n="btn_backup_download">ব্যাকআপ ডাউনলোড করুন</button>
@@ -3201,7 +3253,7 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <div id="backupStatusText" style="font-size:12.5px; color:var(--primary); margin-top:8px;"></div>
   </div>
   <div class="box" id="accountBox">
-    <h3><span class="bn">লগআউট ও লগইন করা ডিভাইস</span><span class="en">Logout &amp; logged-in devices</span></h3>
+    <h3><span class="bn">সেশন ম্যানেজমেন্ট</span><span class="en">Session Management</span></h3>
     <div style="font-size:13.5px; font-weight:700; word-break:break-all;" id="acWho"></div>
     <div style="font-size:12.5px; color:var(--muted); margin:4px 0 10px;"><span class="bn">লগআউট করলে এই ফোনের ডেটা মুছবে না। আবার লগইন বা গেস্ট হিসেবে ঢুকতে পারবেন।</span><span class="en">Logging out keeps the data on this phone. You can log in again or continue as guest.</span></div>
     <div id="devWrap" class="dvWrap" style="display:none;">
@@ -3212,20 +3264,20 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <button class="typebtn" style="width:100%; color:var(--red); display:flex; align-items:center; justify-content:center; gap:8px;" onclick="ftCloud.accountLogout()"><i class="mi" style="--m:var(--ic-power); width:18px; height:18px; flex:none;"></i><span class="bn">লগআউট</span><span class="en">Logout</span></button>
   </div>
   <div class="box" id="cloudSyncBox">
-    <h3><span class="bn">ক্লাউড সিঙ্ক</span><span class="en">Cloud sync</span></h3>
+    <h3><span class="bn">ক্লাউড ব্যাকআপ ও সিঙ্ক</span><span class="en">Cloud Backup &amp; Sync</span></h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 4px;"><span class="bn">আপনার ইমেইলে ক্লাউডে ডেটা থাকলে নতুন ফোনে ওই ইমেইল দিয়ে ঢুকলেই নিজে থেকে ফিরে আসবে। PIN ও ফিঙ্গারপ্রিন্ট আপলোড হয় না।</span><span class="en">If your email already has data in the cloud, it comes back automatically when you sign in on a new phone. Your PIN and fingerprint are never uploaded.</span></p>
     <label class="ftRow csRow"><span class="csTx"><span class="csT"><span class="bn">অটো ক্লাউড সিঙ্ক</span><span class="en">Automatic cloud sync</span></span><small class="csS" id="csSub"></small></span><input type="checkbox" id="csAuto" onchange="ftCloud.toggle(this)"></label>
     <div id="csStatus" style="font-size:12.5px; color:var(--primary); margin-top:6px;"></div>
   </div>
   <div class="box">
-    <h3 data-i18n="settings_budget">মাসিক বাজেট</h3>
+    <h3 data-i18n="settings_budget">বাজেট সীমা</h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px;" data-i18n="budget_note">দৈনিক সীমা ঠিক করুন, তারপর নিচে খাত বেছে সেই খাতের মাসিক সীমা যোগ করুন — সীমা ছাড়িয়ে গেলে ড্যাশবোর্ডে দেখাবে।</p>
     <label data-i18n="lbl_daily_limit">দৈনিক খরচের সীমা (টাকা)</label>
     <div style="display:flex;gap:8px;align-items:stretch;"><input type="number" id="dailyLimitInput" placeholder="0" style="flex:1;min-width:0;margin:0;"><button class="typebtn" style="flex:none;padding:0 18px;" onclick="saveBudgets()" data-i18n="btn_save">সংরক্ষণ করুন</button></div>
     <div id="budgetInputs"></div>
   </div>
   <div class="box">
-    <h3 data-i18n="settings_goal">সঞ্চয় লক্ষ্য</h3>
+    <h3 data-i18n="settings_goal">সঞ্চয় লক্ষ্যমাত্রা</h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px;" data-i18n="goal_note">একটা সঞ্চয়ের লক্ষ্য ঠিক করুন — আপনার একাউন্টে জমানো মোট টাকার সাথে তুলনা করে ড্যাশবোর্ডে অগ্রগতি দেখাবে।</p>
     <label data-i18n="lbl_goal_name">লক্ষ্যের নাম</label>
     <input type="text" id="goalNameInput" data-i18n-ph="ph_goal_name" placeholder="যেমন: নতুন ফোন কেনা">
@@ -3234,19 +3286,19 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <button class="typebtn" style="width:100%; margin-top:8px;" onclick="saveGoal()" data-i18n="btn_save">সংরক্ষণ করুন</button>
   </div>
   <div class="box" id="periodSetBox">
-    <h3 id="perTitle">খরচের সময়কাল</h3>
+    <h3 id="perTitle">রিপোর্টিং সময়কাল</h3>
     <div id="perBody"></div>
   </div>
   <div class="box" id="spSetBox">
-    <h3 id="spSetTitle">সঞ্চয় পরিকল্পনা</h3>
+    <h3 id="spSetTitle">স্মার্ট স্পেন্ডিং প্ল্যান</h3>
     <div id="spSetBody"></div>
   </div>
   <div class="box" id="wgSetBox">
-    <h3 id="wgSetTitle">উইজেট</h3>
+    <h3 id="wgSetTitle">হোম স্ক্রিন উইজেট</h3>
     <div id="wgSetBody"></div>
   </div>
   <div class="box">
-    <h3 data-i18n="settings_recurring">নিয়মিত এন্ট্রি</h3>
+    <h3 data-i18n="settings_recurring">নির্ধারিত লেনদেন</h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px;" data-i18n="recurring_note">বাসা ভাড়া, বেতন, বিলের মতো যা প্রতি মাসে আসে/যায় সেটা একবার সেট করুন — নির্দিষ্ট তারিখ ও সময়ে নিজে থেকে যোগ হয়ে যাবে (অ্যাপ খোলা থাকলে ঠিক সময়ে, বন্ধ থাকলে পরের বার খুললেই)। (সেট করার সময় ওই মাসের তারিখ ও সময় পার হয়ে গেলে, পরের মাস থেকে শুরু হবে।)</p>
     <label data-i18n="lbl_rec_type">ধরন</label>
     <select id="recType" onchange="recTypeChange()">
@@ -3270,14 +3322,14 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <div id="recList" style="margin-top:10px;"></div>
   </div>
   <div class="box">
-    <h3 data-i18n="lock_heading">অ্যাপ লক (ফিঙ্গারপ্রিন্ট)</h3>
+    <h3 data-i18n="lock_heading">বায়োমেট্রিক লক</h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px;" data-i18n="lock_note">চালু করলে অ্যাপ খোলার সময় আপনার ফোনের ফিঙ্গারপ্রিন্ট বা ফেস আনলক দিয়ে যাচাই করতে হবে।</p>
     <div style="font-size:13.5px; margin-bottom:10px;"><span data-i18n="lbl_status">অবস্থা:</span> <span id="lockStatusText" data-i18n="status_off">বন্ধ আছে</span></div>
     <button class="main" id="lockSetupBtn" style="margin-top:0;" onclick="setupBiometric()" data-i18n="btn_setup_finger">ফিঙ্গারপ্রিন্ট সেটআপ করুন</button>
     <button class="typebtn" id="lockDisableBtn" style="width:100%; display:none;" onclick="disableBiometric()" data-i18n="btn_disable_lock">লক বন্ধ করুন</button>
   </div>
   <div class="box">
-    <h3 data-i18n="pin_heading">পিন লক</h3>
+    <h3 data-i18n="pin_heading">পিন সুরক্ষা</h3>
     <p style="font-size:12.5px; color:var(--muted); margin:0 0 8px;" data-i18n="pin_note">ফিঙ্গারপ্রিন্ট না থাকলে বা কাজ না করলে বিকল্প হিসেবে ৪-৬ ডিজিটের পিন দিয়েও লক করা যাবে।</p>
     <div style="font-size:13.5px; margin-bottom:10px;"><span data-i18n="lbl_status">অবস্থা:</span> <span id="pinStatusText" data-i18n="status_off">বন্ধ আছে</span></div>
     <div id="pinSetupArea">
@@ -3290,7 +3342,7 @@ html[data-theme*="yellow"] .cPad button.op{color:#000}
     <button class="typebtn" id="pinDisableBtn" style="width:100%; display:none;" onclick="disablePin()" data-i18n="btn_disable_pin">পিন বন্ধ করুন</button>
   </div>
   <div class="box" id="devModeBox">
-    <h3 data-i18n="dev_mode_title">ডেভেলপার মোড</h3>
+    <h3 data-i18n="dev_mode_title">ডেভেলপার অপশন</h3>
     <div class="devStatus">
       <span class="devDot"></span>
       <div class="devStTx"><b><span class="bn">ডেভেলপার মোড চালু আছে</span><span class="en">Developer mode is on</span></b><small><span class="bn">নিষ্ক্রিয় থাকলে অটো-লক · </span><span class="en">Auto-locks when idle · </span><span id="devCountdown">5:00</span></small></div>
@@ -3469,13 +3521,13 @@ const I18N = {
     qr_cam_starting:'ক্যামেরা চালু হচ্ছে...', qr_point_cam:'QR কোডের দিকে ক্যামেরা ধরুন', btn_close:'বন্ধ করুন',
     loan_people_owe_me:'যাদের কাছে আমি পাবো', loan_people_i_owe:'যাদের আমি পাওনা দিবো',
     hist_month:'মাস', hist_show_all:'সব দেখুন', hist_print:'প্রিন্ট করুন',
-    settings_theme:'থিম', settings_lang:'ভাষা', settings_profile:'প্রোফাইল',
+    settings_theme:'থিম ও অ্যাপিয়ারেন্স', settings_lang:'ভাষা', settings_profile:'প্রোফাইল',
     profile_note:'নিচে তথ্য দিয়ে রাখুন, QR শেয়ার করার সময় বন্ধুরা এই নামে আপনাকে চিনবে।',
     lbl_your_name:'আপনার নাম', ph_your_name:'যেমন: করিম', lg_ph_name:'আপনার নাম', lg_ph_email:'ইমেইল ঠিকানা', lg_ph_pass:'পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)',
     lbl_username:'ইউজারনেম', ph_username:'যেমন: karim123',
     lbl_phone:'মোবাইল নম্বর', ph_phone:'যেমন: 01XXXXXXXXX',
     btn_change_photo:'ছবি পরিবর্তন করুন', btn_reset_photo:'ছবি সরিয়ে দিন',
-    backup_heading:'লোকাল ব্যাকআপ',
+    backup_heading:'ব্যাকআপ ও রিস্টোর',
     backup_note:'এই অ্যাপের কোনো সার্ভার নেই — আপনার সব হিসাব শুধু এই ফোনেই থাকে। নিয়মিত একটা ব্যাকআপ ফাইল ডাউনলোড করে রাখুন, অন্য ফোনে বা অ্যাপ রিসেট হলে সেই ফাইল দিয়ে সব ফিরিয়ে আনতে পারবেন।',
     btn_backup_download:'ব্যাকআপ ডাউনলোড করুন', btn_restore_file:'ব্যাকআপ ফিরিয়ে আনুন',
     backup_download_done:'ব্যাকআপ ফাইল ডাউনলোড হয়েছে।',
@@ -3483,8 +3535,8 @@ const I18N = {
     backup_restore_done:'সফলভাবে ফিরিয়ে আনা হয়েছে, রিলোড হচ্ছে...',
     backup_restore_fail:'ফাইলটি ঠিক নয় বা পড়া যায়নি। আবার চেষ্টা করুন।',
     btn_export_csv:'CSV এক্সপোর্ট করুন (Excel-এ খোলা যাবে)',
-    settings_budget:'মাসিক বাজেট', budget_note:'দৈনিক সীমা ঠিক করুন, তারপর নিচে খাত বেছে সেই খাতের মাসিক সীমা যোগ করুন — সীমা ছাড়িয়ে গেলে ড্যাশবোর্ডে দেখাবে।',
-    settings_goal:'সঞ্চয় লক্ষ্য', goal_note:'একটা সঞ্চয়ের লক্ষ্য ঠিক করুন — আপনার একাউন্টে জমানো মোট টাকার সাথে তুলনা করে ড্যাশবোর্ডে অগ্রগতি দেখাবে।',
+    settings_budget:'বাজেট সীমা', budget_note:'দৈনিক সীমা ঠিক করুন, তারপর নিচে খাত বেছে সেই খাতের মাসিক সীমা যোগ করুন — সীমা ছাড়িয়ে গেলে ড্যাশবোর্ডে দেখাবে।',
+    settings_goal:'সঞ্চয় লক্ষ্যমাত্রা', goal_note:'একটা সঞ্চয়ের লক্ষ্য ঠিক করুন — আপনার একাউন্টে জমানো মোট টাকার সাথে তুলনা করে ড্যাশবোর্ডে অগ্রগতি দেখাবে।',
     lbl_goal_name:'লক্ষ্যের নাম', ph_goal_name:'যেমন: নতুন ফোন কেনা', lbl_goal_target:'লক্ষ্যের পরিমাণ (টাকা)',
     dash_budget_heading:'মাসিক বাজেট', empty_no_budget:'কোনো বাজেট সেট করা নেই — সেটিংসে গিয়ে সেট করুন',
     budget_this_month:'এই মাসে', budget_over_warn:'সীমা ছাড়িয়ে গেছে',
@@ -3509,7 +3561,7 @@ const I18N = {
     limit_over:'আজকের সীমা ছাড়িয়ে গেছে', limit_left:'আজ আর খরচ করতে পারবেন ', lbl_daily_limit:'দৈনিক খরচের সীমা (টাকা)',
     lbl_due:'ফেরতের তারিখ (ঐচ্ছিক)', dash_remind_heading:'লোনের রিমাইন্ডার', rem_get:'ফেরত পাবেন', rem_owe:'ফেরত দিতে হবে',
     rem_overdue:'দিন আগে তারিখ পার হয়েছে', rem_today:'আজই ফেরতের তারিখ', rem_soon:'দিন পরে', rem_popup_title:'লোন ফেরতের রিমাইন্ডার',
-    settings_recurring:'নিয়মিত এন্ট্রি', recurring_note:'বাসা ভাড়া, বেতন, বিলের মতো যা প্রতি মাসে আসে/যায় সেটা একবার সেট করুন — নির্দিষ্ট তারিখ ও সময়ে নিজে থেকে যোগ হয়ে যাবে (অ্যাপ খোলা থাকলে ঠিক সময়ে, বন্ধ থাকলে পরের বার খুললেই)। (সেট করার সময় ওই মাসের তারিখ ও সময় পার হয়ে গেলে, পরের মাস থেকে শুরু হবে।)',
+    settings_recurring:'নির্ধারিত লেনদেন', recurring_note:'বাসা ভাড়া, বেতন, বিলের মতো যা প্রতি মাসে আসে/যায় সেটা একবার সেট করুন — নির্দিষ্ট তারিখ ও সময়ে নিজে থেকে যোগ হয়ে যাবে (অ্যাপ খোলা থাকলে ঠিক সময়ে, বন্ধ থাকলে পরের বার খুললেই)। (সেট করার সময় ওই মাসের তারিখ ও সময় পার হয়ে গেলে, পরের মাস থেকে শুরু হবে।)',
     lbl_rec_type:'ধরন', lbl_rec_amount:'পরিমাণ (টাকা)', lbl_rec_day:'প্রতি মাসের কত তারিখে (১–৩১)', lbl_rec_time:'কোন সময়ে এন্ট্রি হবে', rec_auto_added:'নিয়মিত এন্ট্রি যোগ হয়েছে', lbl_rec_note:'নোট (যেমন: বাসা ভাড়া)',
     btn_rec_add:'যোগ করুন', rec_empty:'কোনো নিয়মিত এন্ট্রি নেই', rec_added:'নিয়মিত এন্ট্রি যোগ হয়েছে।', rec_need:'সঠিক পরিমাণ দিন।',
     rec_every:'প্রতি মাসের', rec_day_suffix:'তারিখে',
@@ -3521,7 +3573,7 @@ const I18N = {
     dev_clear_denied:'যাচাই ব্যর্থ, ডেটা মোছা হয়নি।', dev_clear_done:'সব ডেটা মুছে ফেলা হয়েছে।',
 
     rep_range_from:'শুরুর তারিখ', rep_range_to:'শেষ তারিখ', btn_today:'আজ', btn_week:'শেষ ৭ দিন', btn_this_month:'এই মাস', btn_print_report:'প্রিন্ট করুন',
-    dev_heading:'ডেভেলপার মোড — নোটিফিকেশন পপআপ', dev_mode_title:'ডেভেলপার মোড',
+    dev_heading:'ডেভেলপার অপশন — নোটিফিকেশন পপআপ', dev_mode_title:'ডেভেলপার অপশন',
     dev_note:'এখান থেকে যে নোটিফিকেশন সেট করবেন সেটা অ্যাপ খোলার/লগইন-আনলকের সাথে সাথে সবাইকে দেখাবে, যতক্ষণ না আপনি এটা বন্ধ করছেন।',
     dev_enter_pin:'ডেভেলপার পিন দিন:', dev_unlocked:'ডেভেলপার মোড আনলক হয়েছে।', dev_wrong_pin:'ভুল পিন।',
     dev_lock_confirm:'ডেভেলপার মোড লক করলে আবার আনলক করতে পিন লাগবে। এগিয়ে যাবেন?',
@@ -3535,10 +3587,10 @@ const I18N = {
     btn_dev_lock:'ডেভেলপার মোড লক করুন', btn_notif_gotit:'বুঝেছি',
     settings_logo:'অ্যাপ লোগো', logo_note:'চাইলে অ্যাপের ডিফল্ট লোগোর বদলে নিজের ছবি বা লোগো বসাতে পারেন। এটা লগইন স্ক্রিন ও উপরের টাইটেলে দেখাবে।',
     btn_change_logo:'লোগো পরিবর্তন করুন', btn_reset_logo:'ডিফল্ট লোগোতে ফিরে যান',
-    lock_heading:'অ্যাপ লক (ফিঙ্গারপ্রিন্ট)', lock_note:'চালু করলে অ্যাপ খোলার সময় আপনার ফোনের ফিঙ্গারপ্রিন্ট বা ফেস আনলক দিয়ে যাচাই করতে হবে।',
+    lock_heading:'বায়োমেট্রিক লক', lock_note:'চালু করলে অ্যাপ খোলার সময় আপনার ফোনের ফিঙ্গারপ্রিন্ট বা ফেস আনলক দিয়ে যাচাই করতে হবে।',
     lbl_status:'অবস্থা:', status_on:'চালু আছে', status_off:'বন্ধ আছে',
     btn_setup_finger:'ফিঙ্গারপ্রিন্ট সেটআপ করুন', btn_disable_lock:'লক বন্ধ করুন',
-    pin_heading:'পিন লক', pin_note:'ফিঙ্গারপ্রিন্ট না থাকলে বা কাজ না করলে বিকল্প হিসেবে ৪-৬ ডিজিটের পিন দিয়েও লক করা যাবে।',
+    pin_heading:'পিন সুরক্ষা', pin_note:'ফিঙ্গারপ্রিন্ট না থাকলে বা কাজ না করলে বিকল্প হিসেবে ৪-৬ ডিজিটের পিন দিয়েও লক করা যাবে।',
     lbl_new_pin:'নতুন পিন (৪-৬ সংখ্যা)', ph_new_pin:'নতুন পিন', lbl_confirm_pin:'পিন আবার দিন', ph_confirm_pin:'পিন নিশ্চিত করুন',
     btn_set_pin:'পিন সেট করুন', btn_disable_pin:'পিন বন্ধ করুন',
     contact_heading:'সাহায্য / যোগাযোগ', contact_note:'অ্যাপ নিয়ে কোনো সমস্যা বা কাস্টম কাজের জন্য এডমিনের সাথে যোগাযোগ করুন:',
@@ -3595,13 +3647,13 @@ const I18N = {
     qr_cam_starting:'Starting camera...', qr_point_cam:'Point the camera at the QR code', btn_close:'Close',
     loan_people_owe_me:'People who owe me', loan_people_i_owe:'People I owe',
     hist_month:'Month', hist_show_all:'Show All', hist_print:'Print',
-    settings_theme:'Theme', settings_lang:'Language', settings_profile:'Profile',
+    settings_theme:'Theme & Appearance', settings_lang:'Language', settings_profile:'Profile',
     profile_note:"Set your details below; friends will see your name when you share a QR.",
     lbl_your_name:'Your Name', ph_your_name:'e.g. Karim', lg_ph_name:'Your full name', lg_ph_email:'Email address', lg_ph_pass:'Password (min 6 characters)',
     lbl_username:'Username', ph_username:'e.g. karim123',
     lbl_phone:'Mobile Number', ph_phone:'e.g. 01XXXXXXXXX',
     btn_change_photo:'Change Photo', btn_reset_photo:'Remove Photo',
-    backup_heading:'Local Backup',
+    backup_heading:'Backup & Restore',
     backup_note:"This app has no server — all your data stays on this phone only. Download a backup file regularly, and use it to restore everything on another phone or after a reset.",
     btn_backup_download:'Download Backup', btn_restore_file:'Restore Backup',
     backup_download_done:'Backup file downloaded.',
@@ -3609,8 +3661,8 @@ const I18N = {
     backup_restore_done:'Restored successfully, reloading...',
     backup_restore_fail:'That file is invalid or unreadable. Please try again.',
     btn_export_csv:'Export CSV (opens in Excel)',
-    settings_budget:'Monthly Budget', budget_note:"Set a daily limit, then pick a category below and add its monthly limit — the dashboard will flag it once you go over.",
-    settings_goal:'Savings Goal', goal_note:"Set a savings goal — the dashboard will show your progress compared to your total saved account balance.",
+    settings_budget:'Budget Limits', budget_note:"Set a daily limit, then pick a category below and add its monthly limit — the dashboard will flag it once you go over.",
+    settings_goal:'Savings Targets', goal_note:"Set a savings goal — the dashboard will show your progress compared to your total saved account balance.",
     lbl_goal_name:'Goal Name', ph_goal_name:'e.g. Buy a new phone', lbl_goal_target:'Target Amount (Taka)',
     dash_budget_heading:'Monthly Budget', empty_no_budget:'No budgets set yet — set them in Settings',
     budget_this_month:'This month', budget_over_warn:'Over budget',
@@ -3635,7 +3687,7 @@ const I18N = {
     limit_over:"Daily limit exceeded", limit_left:'You can still spend today: ', lbl_daily_limit:'Daily spending limit (Taka)',
     lbl_due:'Due date (optional)', dash_remind_heading:'Loan Reminders', rem_get:'to receive', rem_owe:'to pay back',
     rem_overdue:'days overdue', rem_today:'due today', rem_soon:'days left', rem_popup_title:'Loan due reminder',
-    settings_recurring:'Recurring Entries', recurring_note:"Set things that repeat every month (rent, salary, bills) once — they're added automatically on that date and time (right on time if the app is open, otherwise the next time you open it). (If the date and time have already passed this month when you set it, it starts next month.)",
+    settings_recurring:'Scheduled Transactions', recurring_note:"Set things that repeat every month (rent, salary, bills) once — they're added automatically on that date and time (right on time if the app is open, otherwise the next time you open it). (If the date and time have already passed this month when you set it, it starts next month.)",
     lbl_rec_type:'Type', lbl_rec_amount:'Amount (Taka)', lbl_rec_day:'Day of month (1–31)', lbl_rec_time:'Entry time', rec_auto_added:'Recurring entry added', lbl_rec_note:'Note (e.g. House rent)',
     btn_rec_add:'Add', rec_empty:'No recurring entries', rec_added:'Recurring entry added.', rec_need:'Enter a valid amount.',
     rec_every:'every month on day', rec_day_suffix:'',
@@ -3647,7 +3699,7 @@ const I18N = {
     dev_clear_denied:'Verification failed, data not cleared.', dev_clear_done:'All data cleared.',
 
     rep_range_from:'From date', rep_range_to:'To date', btn_today:'Today', btn_week:'Last 7 days', btn_this_month:'This month', btn_print_report:'Print',
-    dev_heading:'Developer Mode — Notification Popup', dev_mode_title:'Developer Mode',
+    dev_heading:'Developer Options — Notification Popup', dev_mode_title:'Developer Options',
     dev_note:"Any notification you set here will show to everyone right when they open the app or unlock it, until you turn it off.",
     dev_enter_pin:'Enter developer PIN:', dev_unlocked:'Developer mode unlocked.', dev_wrong_pin:'Wrong PIN.',
     dev_lock_confirm:"Locking developer mode will require the PIN again to unlock it. Continue?",
@@ -3661,10 +3713,10 @@ const I18N = {
     btn_dev_lock:'Lock Developer Mode', btn_notif_gotit:'Got it',
     settings_logo:'App Logo', logo_note:"Swap the app's default logo for your own image or brand mark. It'll show on the login screen and the top title.",
     btn_change_logo:'Change Logo', btn_reset_logo:'Reset to Default Logo',
-    lock_heading:'App Lock (Fingerprint)', lock_note:"When enabled, you'll need to verify with your phone's fingerprint or face unlock to open the app.",
+    lock_heading:'Biometric Lock', lock_note:"When enabled, you'll need to verify with your phone's fingerprint or face unlock to open the app.",
     lbl_status:'Status:', status_on:'Enabled', status_off:'Disabled',
     btn_setup_finger:'Setup Fingerprint', btn_disable_lock:'Disable Lock',
-    pin_heading:'PIN Lock', pin_note:"If fingerprint isn't available or doesn't work, you can lock with a 4-6 digit PIN instead.",
+    pin_heading:'PIN Protection', pin_note:"If fingerprint isn't available or doesn't work, you can lock with a 4-6 digit PIN instead.",
     lbl_new_pin:'New PIN (4-6 digits)', ph_new_pin:'New PIN', lbl_confirm_pin:'Confirm PIN', ph_confirm_pin:'Confirm PIN',
     btn_set_pin:'Set PIN', btn_disable_pin:'Disable PIN',
     contact_heading:'Help / Contact', contact_note:'For any issue or custom work, contact the admin:',
@@ -3814,7 +3866,7 @@ const TYPE_META = {
 function fmt(n){
   n = Math.round((+n || 0)*100)/100; if(n === 0) n = 0;
   const a = Math.abs(n), frac = Math.abs(a - Math.round(a)) > 0.004;   /* show paisa only when there is any */
-  return (n < 0 ? '-' : '') + '৳' + a.toLocaleString('en-IN', frac ? {minimumFractionDigits:2, maximumFractionDigits:2} : {maximumFractionDigits:0});
+  return (n < 0 ? '-' : '') + ftCurSym() + a.toLocaleString(ftCurLocale(), frac ? {minimumFractionDigits:2, maximumFractionDigits:2} : {maximumFractionDigits:0});
 }
 /* main balance must never go below zero: returns a warning text when `need` is more than `have` */
 function ftShortMsg(need, have){
@@ -4070,6 +4122,7 @@ function saveTx(){
   if(meta.needsPerson && !document.getElementById('inPerson').value.trim()){
     alert(t('alert_enter_person')); return;
   }
+  const _lid = window.ftLoanIdFor ? ftLoanIdFor(currentType) : null;
   const account = meta.needsAccount ? document.getElementById('inAccount').value : null;
   if(currentType==='use_from_account'){
     let bal = calcAccountBalances()[account] || 0;
@@ -4093,7 +4146,8 @@ function saveTx(){
     fund: editingTxId ? ((data.transactions.find(x=>x.id===editingTxId)||{}).fund||null) : ftFundFor(currentType),
     note: document.getElementById('inNote').value.trim(),
     date: document.getElementById('inDate').value || todayStr(),
-    time: document.getElementById('inTime').value || nowTime()
+    time: document.getElementById('inTime').value || nowTime(),
+    ...(_lid ? {loanId: _lid} : {})
   };
   { const base = data.transactions.filter(x=>x.id!==editingTxId), bad = validateTxSet(base.concat([{id:editingTxId||'new', ...txData}]));
     if(bad){ ftAlertBad(bad); return; } }
@@ -4649,13 +4703,74 @@ function renderLoans(){
   document.getElementById('totalOweVal').textContent = fmt(totalOwe);
   document.getElementById('totalGetVal').textContent = fmt(totalGet);
 
-  getList.innerHTML = getEntries.length ? getEntries.map(([p,v])=>
-    `<div class="person"><div>${esc(p)}</div><div style="display:flex;align-items:center;"><span class="tag get">${fmt(Math.abs(v))}</span><button class="typebtn loanPayBtn" onclick="payLoan('get','${encodeURIComponent(p)}')">${t('btn_loan_received')}</button></div></div>`
-  ).join('') : `<div class="empty">${t('empty_no_one')}</div>`;
-  oweList.innerHTML = oweEntries.length ? oweEntries.map(([p,v])=>
-    `<div class="person"><div>${esc(p)}</div><div style="display:flex;align-items:center;"><span class="tag owe">${fmt(Math.abs(v))}</span><button class="typebtn loanPayBtn" onclick="payLoan('owe','${encodeURIComponent(p)}')">${t('btn_loan_paid')}</button><button class="typebtn loanPayBtn loanReqBtn" onclick="window.ftReqOpen&&ftReqOpen('${encodeURIComponent(p)}')">${t('btn_loan_req')}</button></div></div>`
-  ).join('') : `<div class="empty">${t('empty_no_one')}</div>`;
+  const B = (typeof currentLang!=='undefined' && currentLang==='bn'), TT=(b,e)=>B?b:e;
+  const IC = {
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>',
+    pay:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>',
+    recv:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17M17 17H7V7"/></svg>',
+    req:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></svg>',
+    doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>'
+  };
+  const idOf = p => { try{ return (window.ftPersonId && window.ftPersonId(p)) || ''; }catch(e){ return ''; } };
+  const row = (p,v,kind)=>{
+    const enc = encodeURIComponent(p), id = idOf(p), owe = kind==='owe';
+    const ini = esc(String(p).trim().charAt(0).toUpperCase()||'?');
+    const idChip = id ? `<div class="ftLids"><span class="ftLid">${esc(id)}</span></div>` : `<div class="ftLids"></div>`;
+    const acts = owe
+      ? `<button type="button" class="lnBtn lnSettle" onclick="ftSettle('owe','${enc}')">${IC.check}<span>${TT('সেটেলমেন্ট','Settle')}</span></button>`
+        + `<button type="button" class="lnBtn lnPri" onclick="payLoan('owe','${enc}')">${IC.pay}<span>${t('btn_loan_paid')}</span></button>`
+        + `<button type="button" class="lnBtn lnGhost" onclick="window.ftReqOpen&&ftReqOpen('${enc}')">${IC.req}<span>${t('btn_loan_req')}</span></button>`
+      : `<button type="button" class="lnBtn lnSettle" onclick="ftSettle('get','${enc}')">${IC.check}<span>${TT('সেটেলমেন্ট','Settle')}</span></button>`
+        + `<button type="button" class="lnBtn lnPri" onclick="payLoan('get','${enc}')">${IC.recv}<span>${t('btn_loan_received')}</span></button>`;
+    const stmt = `<button type="button" class="lnBtn lnIcon" data-ledger="${esc(p)}" aria-label="${TT('স্টেটমেন্ট','Statement')}" title="${TT('স্টেটমেন্ট','Statement')}">${IC.doc}</button>`;
+    return `<div class="person lnP ${owe?'isOwe':'isGet'}">`
+      + `<div class="lnTop"><div class="lnAv">${ini}</div><div class="lnWho"><div class="lnName">${esc(p)}</div>${idChip}</div>`
+      + `<div class="lnAmt"><span class="tag ${owe?'owe':'get'}">${fmt(Math.abs(v))}</span><small>${owe?TT('দিতে হবে','To pay'):TT('পাবেন','To receive')}</small></div></div>`
+      + `<div class="lnActs">${acts}${stmt}</div></div>`;
+  };
+  getList.innerHTML = getEntries.length ? getEntries.map(([p,v])=>row(p,v,'get')).join('') : `<div class="empty">${t('empty_no_one')}</div>`;
+  oweList.innerHTML = oweEntries.length ? oweEntries.map(([p,v])=>row(p,v,'owe')).join('') : `<div class="empty">${t('empty_no_one')}</div>`;
 }
+
+/* ---- Settlement: clear the whole remaining balance with one person in one tap ---- */
+function ftSettle(kind, encName){
+  const person = decodeURIComponent(encName);
+  const {getMap, oweMap} = calcLoans();
+  const remaining = Math.round((kind==='get' ? getMap[person] : oweMap[person]) || 0);
+  if(remaining <= 0) return;
+  const B = (typeof currentLang!=='undefined' && currentLang==='bn'), TT=(b,e)=>B?b:e;
+  const old = document.getElementById('lnSettleOv'); if(old) old.remove();
+  const ov = document.createElement('div'); ov.id='lnSettleOv'; ov.className='askOverlay';
+  ov.innerHTML = '<div class="askCard lnSetCard"><div class="lnSetIc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div>'
+    + '<h4></h4><div class="lnSetAmt"></div><p></p>'
+    + '<div class="row2"><div><button type="button" class="typebtn" style="width:100%;" id="lnSetNo"></button></div><div><button type="button" class="main" style="margin-top:0;" id="lnSetOk"></button></div></div></div>';
+  ov.querySelector('h4').textContent = TT('সেটেলমেন্ট — ','Settlement — ') + person;
+  ov.querySelector('.lnSetAmt').textContent = fmt(remaining);
+  ov.querySelector('p').textContent = kind==='get'
+    ? TT('পুরো বাকি টাকা ফেরত পেয়েছেন বলে লেখা হবে এবং হিসাব ০ হয়ে যাবে।','The full remaining amount will be recorded as received and the balance becomes 0.')
+    : TT('পুরো বাকি টাকা পরিশোধ করা হয়েছে বলে লেখা হবে এবং হিসাব ০ হয়ে যাবে।','The full remaining amount will be recorded as paid and the balance becomes 0.');
+  ov.querySelector('#lnSetNo').textContent = t('btn_cancel_edit');
+  ov.querySelector('#lnSetOk').textContent = TT('সেটেল করুন','Settle now');
+  ov.querySelector('#lnSetNo').onclick = ()=>ov.remove();
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#lnSetOk').onclick = ()=>{
+    if(kind!=='get'){ const nb = ftNeedBal('loan_repay_taken', remaining, null); if(nb){ ov.remove(); ftWarnPopup(nb); return; } }
+    data.transactions.push({
+      id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+      type: kind==='get' ? 'loan_repay_given' : 'loan_repay_taken',
+      amount: remaining, category: null, source: null, due: null,
+      person: person, account: null,
+      note: TT('সেটেলমেন্ট — পুরো হিসাব মেটানো হয়েছে','Settlement — fully settled'),
+      date: todayStr(), time: nowTime()
+    });
+    saveData(); ov.remove();
+    renderDash(); renderAccounts(); renderLoans(); renderHistory(); populatePersonList();
+    try{ (window.toast||alert)(TT('সেটেলমেন্ট সম্পন্ন','Settled')); }catch(e){}
+    try{ if(window.ftRefreshStmt) window.ftRefreshStmt(person); }catch(e){}
+  };
+  document.body.appendChild(ov);
+}
+window.ftSettle = ftSettle;
 
 function renderHistory(){
   const monthFilter = document.getElementById('filterMonth').value;
@@ -4670,7 +4785,7 @@ function renderHistory(){
   }
   if(keyword){
     list = list.filter(tx=>{
-      const hay = [t(TYPE_META[tx.type].label), tx.category, tx.person, tx.account, tx.note]
+      const hay = [t(TYPE_META[tx.type].label), tx.category, tx.person, tx.account, tx.note, tx.loanId]
         .filter(Boolean).join(' ').toLowerCase();
       return hay.includes(keyword);
     });
@@ -6695,14 +6810,15 @@ if(devUnlocked){
   // 5) send loan reminder to friends who owe me
   function decorate(){
     document.querySelectorAll('#getList .person').forEach(row=>{
-      const name=row.firstElementChild.textContent, tag=row.querySelector('.tag'); if(!tag) return;
-      const b=document.createElement('button'); b.className='del'; b.innerHTML=mi('send'); b.title=bn()?'রিমাইন্ডার পাঠান':'Send reminder';
+      const nm=row.querySelector('.lnName')||row.firstElementChild, name=nm.textContent, tag=row.querySelector('.tag'); if(!tag) return;
+      const acts=row.querySelector('.lnActs');
+      const b=document.createElement('button'); b.type='button'; b.className=acts?'lnBtn lnIcon':'del'; b.innerHTML=mi('send'); b.title=bn()?'রিমাইন্ডার পাঠান':'Send reminder';
       b.onclick=()=>{
         if(window.openLoanSend){ window.openLoanSend(name,tag.textContent); return; }
         const msg=bn()?`${name}, তোমার কাছে আমার ${tag.textContent} পাওনা আছে। সুবিধামতো ফেরত দিও। ধন্যবাদ।`:`Hi ${name}, a gentle reminder — you owe me ${tag.textContent}. Please return it when convenient. Thanks!`;
         if(navigator.share) navigator.share({text:msg}).catch(()=>{}); else window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank','noopener');
       };
-      row.lastElementChild.prepend(b);
+      if(acts) acts.appendChild(b); else row.lastElementChild.prepend(b);
     });
   }
   const _rl=renderLoans; renderLoans=function(){ _rl.apply(this,arguments); decorate(); };
@@ -7149,11 +7265,11 @@ window.lockNow=function(){
 /* --- privacy / number format (central fmt) --- */
 const _fmt=window.fmt, D2B=s=>s.replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]);
 window.fmt=function(n){
-  if(ls('hideBal_v1','0')==='1')return '৳ ••••';
+  if(ls('hideBal_v1','0')==='1')return (ftCurSym()+' ••••');
   let s;
   if(ls('compact_v1','0')==='1'&&Math.abs(n)>=1e5){
     const a=Math.abs(n),ng=n<0?'-':'',cut=x=>x.toFixed(2).replace(/\.?0+$/,'');
-    s=a>=1e7?ng+'৳'+cut(a/1e7)+(bn()?' কোটি':' Cr'):ng+'৳'+cut(a/1e5)+(bn()?' লাখ':' L');
+    s=a>=1e7?ng+ftCurSym()+cut(a/1e7)+(bn()?' কোটি':' Cr'):ng+ftCurSym()+cut(a/1e5)+(bn()?' লাখ':' L');
   }else s=_fmt(n);
   return ls('digitsBn_v1','0')==='1'?D2B(s):s;
 };
@@ -7188,18 +7304,18 @@ function mkBox(id,icon,color,tb,te,rows){
   d.innerHTML='<summary><span class="setIco" style="--c:'+color+'">'+ic(icon)+'</span><h3>'+bl(tb,te)+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
   const body=d.querySelector('.setBody');rows.forEach(r=>body.appendChild(r));return d;
 }
-const lb=document.createElement('button');lb.className='typebtn';lb.style.cssText='width:100%;margin-top:12px;';lb.innerHTML=ic('lock')+' '+bl('এখনই অ্যাপ লক করুন','Lock app now');lb.onclick=()=>lockNow();
-const secBox=mkBox('secPlusBox','shield','#ef4444','নিরাপত্তা ও প্রাইভেসি','Security & Privacy',[
-  sel('অটো-লক সময়','Auto-lock after','lockDelay_v1','60',[['0','তৎক্ষণাৎ · Instantly'],['30','৩০ সেকেন্ড · 30 sec'],['60','১ মিনিট · 1 min'],['300','৫ মিনিট · 5 min'],['never','কখনো না · Never']]),
-  tog('খুললেই ফিঙ্গারপ্রিন্ট চাও','Auto-prompt fingerprint','lockAutoBio_v1','1'),
-  tog('ব্যালেন্স লুকান (••••)','Hide balances (••••)','hideBal_v1','0',rerender),
-  tog('ভাইব্রেশন ফিডব্যাক','Vibration feedback','haptic_v1','1')
+const lb=document.createElement('button');lb.className='typebtn';lb.style.cssText='width:100%;margin-top:12px;';lb.innerHTML=ic('lock')+' '+bl('এখনই লক করুন','Lock Now');lb.onclick=()=>lockNow();
+const secBox=mkBox('secPlusBox','shield','#ef4444','প্রাইভেসি নিয়ন্ত্রণ','Privacy Controls',[
+  sel('অটো-লক সময়সীমা','Auto-Lock Timeout','lockDelay_v1','60',[['0','তৎক্ষণাৎ · Instantly'],['30','৩০ সেকেন্ড · 30 sec'],['60','১ মিনিট · 1 min'],['300','৫ মিনিট · 5 min'],['never','কখনো না · Never']]),
+  tog('বায়োমেট্রিক কুইক আনলক','Biometric Quick Unlock','lockAutoBio_v1','1'),
+  tog('ব্যালেন্স মাস্ক করুন','Mask Balances','hideBal_v1','0',rerender),
+  tog('হ্যাপটিক ফিডব্যাক','Haptic Feedback','haptic_v1','1')
 ]);
 secBox.querySelector('.setBody').appendChild(lb);
-const prefBox=mkBox('prefPlusBox','bolt','#f59e0b','অ্যাপ পছন্দ','App Preferences',[
-  tog('বাংলা সংখ্যা (০১২৩)','Bangla digits (০১২৩)','digitsBn_v1','0',rerender),
-  tog('বড় অংক সংক্ষেপে (লাখ/কোটি)','Short big numbers (Lakh/Cr)','compact_v1','0',rerender),
-  sel('ব্যাকআপ রিমাইন্ডার','Backup reminder','backupRemind_v1','0',[['0','বন্ধ · Off'],['7','প্রতি ৭ দিন · Every 7 days'],['30','প্রতি ৩০ দিন · Every 30 days']],()=>st('backupRemindAt_v1',Date.now()))
+const prefBox=mkBox('prefPlusBox','bolt','#f59e0b','সাধারণ পছন্দ','General Preferences',[
+  tog('বাংলা সংখ্যা','Bangla Numerals','digitsBn_v1','0',rerender),
+  tog('সংক্ষিপ্ত সংখ্যা ফরম্যাট','Compact Number Format','compact_v1','0',rerender),
+  sel('ব্যাকআপ সময়সূচি','Backup Schedule','backupRemind_v1','0',[['0','বন্ধ · Off'],['7','প্রতি ৭ দিন · Every 7 days'],['30','প্রতি ৩০ দিন · Every 30 days']],()=>st('backupRemindAt_v1',Date.now()))
 ]);
 const pinBox=[...document.querySelectorAll('#sec-settings details.setBox')].find(d=>d.querySelector('[data-i18n="pin_heading"]'));
 if(pinBox){pinBox.after(secBox);secBox.after(prefBox)}else{$('sec-settings').appendChild(secBox);$('sec-settings').appendChild(prefBox)}
@@ -7402,7 +7518,7 @@ function tg(b,e,k,def,fn){
   const c=l.querySelector('input'); c.checked=ls(k,def)==='1'; c.onchange=()=>{ st(k,c.checked?'1':'0'); fn&&fn(); }; return l;
 }
 const box=document.createElement('details'); box.className='box setBox'; box.id='rmBox';
-box.innerHTML='<summary><span class="setIco" style="--c:#8b5cf6">'+mi('bell')+'</span><h3>'+bl('রিমাইন্ডার','Reminders')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
+box.innerHTML='<summary><span class="setIco" style="--c:#8b5cf6">'+mi('bell')+'</span><h3>'+bl('রিমাইন্ডার পছন্দ','Reminder Preferences')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
 const bd=box.querySelector('.setBody');
 bd.appendChild(tg('ড্যাশবোর্ডে বাকি রিমাইন্ডার দেখাও','Show pending reminders on the dashboard','rmPopup_v1','1'));
 bd.appendChild(tg('আগামীকালেরগুলোও দেখাও','Also show tomorrow\u2019s','rmTomorrow_v1','1'));
@@ -7590,7 +7706,7 @@ function tg(b,e,k,def){
   const c=l.querySelector('input'); c.checked=ls(k,def)==='1'; c.onchange=()=>st(k,c.checked?'1':'0'); return l;
 }
 const box=document.createElement('details'); box.className='box setBox'; box.id='payBox';
-box.innerHTML='<summary><span class="setIco" style="--c:#e2136e">'+mi('wallet')+'</span><h3>'+bl('পেমেন্ট ডিটেইলস ও মেসেজ','Payment details & messages')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
+box.innerHTML='<summary><span class="setIco" style="--c:#e2136e">'+mi('wallet')+'</span><h3>'+bl('পেমেন্ট পছন্দ','Payment Preferences')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
 const bd=box.querySelector('.setBody');
 const via=document.createElement('label'); via.className='ftRow';
 via.innerHTML='<span>'+bl('ডিফল্ট পাঠানোর মাধ্যম','Default way to send')+'</span><select><option value="sms">SMS</option><option value="wa">WhatsApp</option><option value="share">'+L('অন্য অ্যাপ','Other app')+'</option><option value="copy">'+L('কপি','Copy')+'</option></select>';
@@ -7902,7 +8018,7 @@ function put(patch){ data.spendPeriod=Object.assign(cfg(),patch); saveData(); tr
 function chip(on,fn,txt){ return '<button type="button" class="chip'+(on?' on':'')+'" onclick="'+fn+'">'+txt+'</button>'; }
 function render(){
   const box=$('perBody'); if(!box) return;
-  const t=$('perTitle'); if(t) t.textContent=L('খরচের সময়কাল','Spending period');
+  const t=$('perTitle'); if(t) t.textContent=L('রিপোর্টিং সময়কাল','Reporting Period');
   const c=cfg(), PR=ftPeriod(), today=todayStr();
   const nd=n=>String(n).replace(/\d/g,x=>bn()?'০১২৩৪৫৬৭৮৯'[x]:x);
   let h='<p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">'+L('অনেকের মাস ১ তারিখে শুরু হয় না — যেমন ১০ তারিখে বেতন পেলে ১০ তারিখ থেকে পরের মাসের ৯ তারিখ পর্যন্ত একটি মাস। এখানে সময়কাল ঠিক করলে \"আজ কত খরচ করতে পারবেন\" সেই অনুযায়ী বাকি দিন ধরে হিসাব হবে।','Not everyone\'s month starts on the 1st — e.g. if you are paid on the 10th, your month runs from the 10th to the 9th of next month. Set it here and \"how much you can spend today\" counts the days left in that period.')+'</p>';
@@ -8028,7 +8144,7 @@ function prev(){ const e=$('spPrev'); if(e) e.innerHTML=spHtml(draft); }
 function baseIncome(){ return draft.inc==='custom'?(+draft.custom||0):periodIncome(ftPeriod()); }
 function renderSet(){
   const box=$('spSetBody'); if(!box) return;
-  $('spSetTitle').textContent=L('সঞ্চয় পরিকল্পনা (দৈনিক খরচ সীমা)','Savings Planner (daily limit)');
+  $('spSetTitle').textContent=L('স্মার্ট স্পেন্ডিং প্ল্যান','Smart Spending Plan');
   const ch=(on,fn,txt)=>`<button type="button" class="chip${on?' on':''}" onclick="${fn}">${txt}</button>`;
   box.innerHTML=`<p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">${L('মাসে কত সঞ্চয় করতে চান দিন। মোট আয় থেকে সঞ্চয় ও নির্বাচিত খাতের খরচ (বা বাজেট, যেটা বেশি) বাদ দিয়ে যা থাকবে তার ভিত্তিতে দৈনিক ও মাসিক বাজেট ড্যাশবোর্ডে দেখাবে। সীমা ছাড়ালে সতর্কতা আসবে এবং পরের দিনের সীমা নিজে থেকে ঠিক হয়ে যাবে।','Set how much you want to save monthly. Savings and the selected categories (their spending or budget, whichever is higher) are deducted from income, and the dashboard shows your daily and monthly budget from the rest. You get a warning when you cross the limit, and the limit for the next day adjusts automatically.')}</p>
   <label>${L('আয়ের ভিত্তি','Income basis')}</label>
@@ -8182,7 +8298,7 @@ function renderWidget(){
     <div class="wgChips">${amts().map(n=>`<button type="button" onclick="wgAmt(${n})">+${n}</button>`).join('')}<button type="button" onclick="wgAmt(0)">${L('মুছুন','Clear')}</button></div>
     <div class="wgRow2"><input type="number" inputmode="decimal" id="wgAmt" placeholder="${L('টাকা','Amount')}"><select id="wgCat">${data.categories.map(c=>`<option value="${esc(c)}"${c===curCat()?' selected':''}>${esc(c)}</option>`).join('')}</select></div>
     <input type="text" id="wgNote" placeholder="${L('নোট (ঐচ্ছিক)','Note (optional)')}">
-    <button class="wgAdd" type="button" onclick="wgAddExp()">${L('খরচ যোগ করুন','Add expense')}</button></div>`;
+    <button class="wgAdd" type="button" onclick="wgAddExp()">${(window.ftRoastOn&&ftRoastOn())?'Submit a loss':L('খরচ যোগ করুন','Add expense')}</button></div>`;
   }
   h+=`<button class="wgGo" style="display:block;margin:6px auto 0;background:transparent;color:var(--muted);border:1px solid var(--border)" type="button" onclick="closeWidget()">${L('পুরো অ্যাপ খুলুন','Open full app')}</button></div>`;
   ov.innerHTML=h;
@@ -8215,7 +8331,7 @@ function tg(txt,key,sub){ return `<label class="ftRow"><span>${txt}</span><input
 function renderWSet(){
   const box=$('wgSetBody'); if(!box) return;
   const ae=document.activeElement; if(ae&&box.contains(ae)&&ae.tagName==='INPUT'&&ae.type!=='checkbox') return;
-  $('wgSetTitle').textContent=L('উইজেট (হোম স্ক্রিন)','Widget (home screen)');
+  $('wgSetTitle').textContent=L('হোম স্ক্রিন উইজেট','Home Screen Widget');
   let h=`<p style="font-size:12.5px;color:var(--muted);margin:0 0 6px;">${L('উইজেট চালু করলে একটা ছোট কুইক-ভিউ পেজ পাবেন — যেখানে আজকের সঞ্চয় পরিকল্পনা দেখা যাবে এবং সরাসরি খরচ যোগ করা যাবে। কী কী দেখাবে তা নিজে বেছে নিন।','Turn the widget on to get a small quick-view page showing today\'s savings plan with a quick add-expense option. Choose what it shows.')}</p>`;
   h+=tg(L('উইজেট চালু করুন','Enable widget'),'on');
   if(cfg.on){
@@ -8918,7 +9034,7 @@ function linkName(uid){ var m=getLink(); return (m[uid]&&m[uid].name)||''; }
 function linkByName(n){ n=low(n); if(!n) return null; var m=getLink(); for(var k in m){ if(low(m[k].name)===n) return m[k]; } return null; }
 function ek(v){ return String(v||'').trim().toLowerCase().replace(/\./g,',').replace(/[#$\[\]\/%]/g,'_'); }
 function E(v){ return typeof esc==='function'?esc(v):String(v).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-function F(n){ try{return fmt(n);}catch(e){return '৳'+n;} }
+function F(n){ try{return fmt(n);}catch(e){return ftCurSym()+n;} }
 async function db(path,opt){
   var r=R(), base=String(r.CFG.dbUrl).replace(/\/+$/,''), tk=await r.token();
   var res=await r.call(base+'/'+path+'.json?auth='+encodeURIComponent(tk),opt);
@@ -11151,7 +11267,7 @@ function open(type,ref){
   if(type==='msg'||type==='req'){ try{ const b=$('fcT2'); if(b) b.click(); }catch(e){} }
 }
 /* ---------- sources ---------- */
-const fm=n=>{ try{ return fmt(n); }catch(e){ return '৳'+Math.round(n); } };
+const fm=n=>{ try{ return fmt(n); }catch(e){ return ftCurSym()+Math.round(n); } };
 function scan(first){
   const mute=!init.done; // first run: remember what already exists, no flood
   const N=o=>{ if(mute){ if(o.id){ seen[o.id]=Date.now(); } return; } if(P[o.type]!==false) notify(o); else if(o.id) seen[o.id]=Date.now(); };
@@ -11190,7 +11306,7 @@ ov.addEventListener('click',e=>{ if(e.target===ov){ closeSheet(); return; } cons
   const it=e.target.closest('.ntIt'); if(it){ const x=log[+it.dataset.i]; if(x){ x.r=1; jset(LK,log); badge(); open(x.type,x); } } });
 /* ---------- settings card ---------- */
 const box=document.createElement('details'); box.className='box setBox'; box.id='ntSetBox'; box.dataset.pro='1';
-box.innerHTML='<summary><span class="setIco" style="--c:#f59e0b">'+ic('bell')+'</span><div class="setTt"><h3><span class="bn">নোটিফিকেশন অপশন</span><span class="en">Notification options</span></h3><small class="setSub"><span class="bn">কোন কোন অ্যালার্ট পাবেন তা ঠিক করুন</span><span class="en">Choose which alerts you get</span></small></div><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
+box.innerHTML='<summary><span class="setIco" style="--c:#f59e0b">'+ic('bell')+'</span><div class="setTt"><h3><span class="bn">নোটিফিকেশন পছন্দ</span><span class="en">Notification Preferences</span></h3><small class="setSub"><span class="bn">কোন কোন অ্যালার্ট পাবেন তা ঠিক করুন</span><span class="en">Choose which alerts you get</span></small></div><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
 const ntBody=box.querySelector('.setBody');
 const ROWS=[['msg','বন্ধুর নতুন মেসেজ','New friend messages'],['status','বন্ধুর নতুন স্ট্যাটাস','Friends\' new status'],['req','টাকার অনুরোধ','Money requests'],['rem','আমার রিমাইন্ডার','My reminders'],['loan','ধার ফেরতের তারিখ','Loan due dates'],['limit','দৈনিক খরচের সীমা','Daily spending limit'],['daily','প্রতিদিন হিসাব লেখার তাগিদ','Daily entry nudge'],['vib','ভাইব্রেশন','Vibration']];
 function status(){
@@ -11227,18 +11343,18 @@ window.ftNotify=notify;
 var sec=document.getElementById('sec-settings'); if(!sec) return;
 var bl=function(b,e){ return '<span class="bn">'+b+'</span><span class="en">'+e+'</span>'; };
 var CATS=[
- ['invite','বন্ধুদের ইনভাইট করুন','Invite friends',['inviteBox']],
- ['look','চেহারা ও ভাষা','Appearance & language',['settings_theme','settings_lang']],
- ['acct','অ্যাকাউন্ট ও প্রোফাইল','Account & profile',['settings_profile','bdSetBox']],
- ['money','অর্থ ও বাজেট','Money & budget',['settings_budget','settings_goal','periodSetBox','spSetBox','settings_recurring','payBox']],
- ['remind','রিমাইন্ডার ও নোটিফিকেশন','Reminders & notifications',['rmBox','ntSetBox','ntBox']],
- ['secu','নিরাপত্তা ও লক','Security & lock',['lock_heading','pin_heading','secPlusBox']],
- ['data','ডেটা ও ব্যাকআপ','Data & backup',['cloudSyncBox','backup_heading']],
- ['pref','অ্যাপ পছন্দ ও উইজেট','Preferences & widgets',['installBox','prefPlusBox','wgSetBox']],
- ['help','সহায়তা ও ডেভেলপার','Support & developer',['devModeBox','dev_mode_title']]
+ ['invite','রেফার ও শেয়ার','Refer & Share',['inviteBox']],
+ ['look','চেহারা ও ভাষা','Appearance & Language',['settings_theme','settings_lang']],
+ ['acct','অ্যাকাউন্ট ও প্রোফাইল','Account & Profile',['settings_profile','bdSetBox']],
+ ['money','আর্থিক ব্যবস্থাপনা','Finance & Budgeting',['curBox','settings_budget','settings_goal','periodSetBox','spSetBox','settings_recurring','payBox','qxBox']],
+ ['remind','অ্যালার্ট ও রিমাইন্ডার','Alerts & Reminders',['rmBox','ntSetBox','ntBox']],
+ ['secu','নিরাপত্তা ও অ্যাক্সেস','Security & Access',['lock_heading','pin_heading','secPlusBox']],
+ ['data','ডেটা ম্যানেজমেন্ট','Data Management',['cloudSyncBox','backup_heading']],
+ ['pref','পছন্দ ও উইজেট','Preferences & Widgets',['installBox','prefPlusBox','wgSetBox']],
+ ['help','সহায়তা ও অ্যাডভান্সড','Support & Advanced',['devModeBox','dev_mode_title']]
 ];
 var OTHER=['more','অন্যান্য','More',[]];
-var LOGOUT=['logout','লগআউট ও সেশন','Logout & sessions',['accountBox']];
+var LOGOUT=['logout','সেশন','Sessions',['accountBox']];
 function keyOf(d){ if(d.id) return d.id; var h=d.querySelector(':scope > summary h3'); return h&&h.getAttribute('data-i18n')||''; }
 function keysOf(d){ var k=[d.id]; var h=d.querySelector(':scope > summary h3'); if(h) k.push(h.getAttribute('data-i18n')||''); return k; }
 function arrange(){
@@ -12016,7 +12132,7 @@ const SUB={
  cloudSyncBox:['ক্লাউড সিঙ্ক ও অ্যাকাউন্ট','Cloud sync & account'],backup_heading:['ব্যাকআপ ও রিস্টোর','Backup & restore'],prefPlusBox:['অ্যাপের আচরণ ও হোম','App behaviour & home'],wgSetBox:['হোম উইজেট','Home widgets'],
  devModeBox:['ডেভেলপার টুল','Developer tools'],dev_mode_title:['ডেভেলপার টুল','Developer tools'],payBox:['পেমেন্ট ও লেনদেন সেটিং','Payment & transaction options']
 };
-const MOVED=['settings_budget','settings_goal','spSetBox','settings_recurring','payBox'];
+const MOVED=['settings_budget','settings_goal','spSetBox','settings_recurring','payBox','qxBox'];
 const PHS=[
  ['phMe','প্রোফাইল','Profile','#0ea5e9','<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.6 3.6-6 8-6s8 2.4 8 6"/></svg>','ছবি, কভার, বায়ো ও ব্যক্তিগত তথ্য','Photo, cover, bio & personal details'],
  ['phLogin','লগইন ও যোগাযোগ','Login & contact','#10b981','<svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M16 7l3 3M14 9l2 2"/></svg>','ইমেইল, মোবাইল, পাসওয়ার্ড','Email, mobile, password'],
@@ -15131,9 +15247,9 @@ function render(){
  $('nsCL').innerHTML=Object.keys(cn).map(c=>'<option value="'+esc(c)+'">').join('');
  let L=D.notes.filter(n=>(!colF||n.col===colF)&&(!q||(n.t+' '+n.b).toLowerCase().includes(q)));
  L.sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||(D.desc?a.u-b.u:b.u-a.u));
- $('nsGrid').innerHTML=L.map(n=>'<div class="nsCard'+(n.pin?' pin':'')+'" onclick="NS.open(\''+n.id+'\')"><b>'+esc(n.t||'Note')+'</b><p>'+esc(n.b)+'</p>'+(n.r?'<em class="nsRt">⏰ '+fmtR(n.r)+'</em>':'')+'<div class="nsFt"><small>'+when(n.u)+'</small><button class="nsClk'+(n.r&&!n.rf?' on':'')+'" data-rem="n:'+n.id+'" aria-label="Reminder">⏰</button></div></div>').join('')||'<div class="nsEmpty" style="grid-column:1/3">কোনো নোট নেই — নিচের + চাপ দিন</div>';
+ $('nsGrid').innerHTML=L.map(n=>'<div class="nsCard'+(n.pin?' pin':'')+'" onclick="NS.open(\''+n.id+'\')"><b>'+esc(n.t||'Note')+'</b><p>'+esc(n.b)+'</p>'+(n.r?'<em class="nsRt">'+fmtR(n.r)+'</em>':'')+'<div class="nsFt"><small>'+when(n.u)+'</small><button class="nsClk'+(n.r&&!n.rf?' on':'')+'" data-rem="n:'+n.id+'" aria-label="Reminder">⏰</button></div></div>').join('')||'<div class="nsEmpty" style="grid-column:1/3">কোনো নোট নেই — নিচের + চাপ দিন</div>';
  const T=D.tasks.filter(t=>!q||t.t.toLowerCase().includes(q));
- $('nsTList').innerHTML=T.map(t=>'<div class="nsTask'+(t.d?' done':'')+'"><input type="checkbox" '+(t.d?'checked':'')+' onchange="NS.tog(\''+t.id+'\')"><span>'+esc(t.t)+(t.r?'<em class="nsRt">⏰ '+fmtR(t.r)+'</em>':'')+'</span><button class="nsClk'+(t.r&&!t.rf?' on':'')+'" data-rem="t:'+t.id+'" aria-label="Reminder">⏰</button><button onclick="NS.rmT(\''+t.id+'\')">×</button></div>').join('')||'<div class="nsEmpty">কোনো টাস্ক নেই</div>';
+ $('nsTList').innerHTML=T.map(t=>'<div class="nsTask'+(t.d?' done':'')+'"><input type="checkbox" '+(t.d?'checked':'')+' onchange="NS.tog(\''+t.id+'\')"><span>'+esc(t.t)+(t.r?'<em class="nsRt">'+fmtR(t.r)+'</em>':'')+'</span><button class="nsClk'+(t.r&&!t.rf?' on':'')+'" data-rem="t:'+t.id+'" aria-label="Reminder">⏰</button><button onclick="NS.rmT(\''+t.id+'\')">×</button></div>').join('')||'<div class="nsEmpty">কোনো টাস্ক নেই</div>';
 }
 function open(id){cur=id?D.notes.find(n=>n.id===id):null;
  $('nsT').value=cur?cur.t:'';$('nsB').value=cur?cur.b:'';$('nsC').value=cur?cur.col||'':colF||'';
@@ -16269,7 +16385,7 @@ function settle(net){
 }
 function digits(s){ return String(s==null?'':s).replace(/[০-৯]/g,function(c){ return '০১২৩৪৫৬৭৮৯'.indexOf(c); }); }
 function num(s){ var v=parseFloat(digits(s).replace(/[^\d.]/g,'')); return isFinite(v)&&v>0?Math.round(v*100)/100:0; }
-function money(n){ return '৳'+Math.round(+n||0).toLocaleString('en-US'); }
+function money(n){ return ftCurSym()+Math.round(+n||0).toLocaleString('en-US'); }
 function dayDiff(a,b){ if(!a||!b) return 0; var x=Date.parse(a+'T00:00:00'), y=Date.parse(b+'T00:00:00'); if(!isFinite(x)||!isFinite(y)||y<x) return 0; return Math.round((y-x)/864e5)+1; }
 
 
@@ -18171,7 +18287,7 @@ function progress(g){
   s+=bonusOf(g); s=Math.max(0,s);
   return {saved:s,pct:g.target>0?Math.min(100,Math.floor(s/g.target*100)):0};
 }
-const fm=n=>{ try{ return fmt(Math.round(n)); }catch(e){ return '৳'+Math.round(n); } };
+const fm=n=>{ try{ return fmt(Math.round(n)); }catch(e){ return ftCurSym()+Math.round(n); } };
 
 /* ---------------- days / sub-challenge stats ---------------- */
 const dDiff=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
@@ -19221,7 +19337,7 @@ function me(){ var s=ses(); return s?s.uid:''; }
 function myName(){ return (ls('myName_v1')||ls('myUsername_v1').replace(/^@/,'')||'User').slice(0,40); }
 function myUn(){ return ls('myUsername_v1').replace(/^@/,'').slice(0,30); }
 function toast(m){ try{ if(window.toast) window.toast(m); }catch(e){} }
-function money(n){ n=Math.round(+n||0); try{ if(window.ftReqApi&&ftReqApi.F) return ftReqApi.F(n); }catch(e){} return '৳'+nb(n); }
+function money(n){ n=Math.round(+n||0); try{ if(window.ftReqApi&&ftReqApi.F) return ftReqApi.F(n); }catch(e){} return ftCurSym()+nb(n); }
 async function db(path,opt,qs){
   var r=R(); if(!r||!r.ok()||!r.ses()) throw new Error('LOGIN');
   var base=String(r.CFG.dbUrl).replace(/\/+$/,''), tk=await r.token();
@@ -20103,18 +20219,18 @@ const SUB={
  lock_heading:['ফিঙ্গারপ্রিন্ট দিয়ে লক','Lock with fingerprint'],pin_heading:['পিন দিয়ে অ্যাপ লক','Lock the app with a PIN'],secPlusBox:['অতিরিক্ত নিরাপত্তা','Extra security'],
  cloudSyncBox:['অটো ক্লাউড সিঙ্ক ও অ্যাকাউন্ট','Auto cloud sync & account'],backup_heading:['ব্যাকআপ ও রিস্টোর','Backup & restore'],
  prefPlusBox:['অ্যাপের আচরণ ও হোম','App behaviour & home'],wgSetBox:['হোম উইজেট','Home widgets'],devModeBox:['ডেভেলপার টুল','Developer tools'],dev_mode_title:['ডেভেলপার টুল','Developer tools'],
- inviteBox:['লিংক শেয়ার করে বন্ধুদের ডাকুন','Share your link and invite friends'],accountBox:['লগআউট ও লগইন করা ডিভাইস','Logout & logged-in devices']
+ qxBox:['এক ট্যাপে খরচ যোগ করার শর্টকাট','One-tap expense shortcuts'],inviteBox:['লিংক শেয়ার করে বন্ধুদের ডাকুন','Share your link and invite friends'],accountBox:['লগআউট ও লগইন করা ডিভাইস','Logout & logged-in devices']
 };
 const SECS=[
  ['অ্যাকাউন্ট ও প্রোফাইল','Account & Profile',['@acct','settings_profile','bdSetBox']],
- ['অর্থ ও বাজেট','Money & Budgets',['settings_budget','settings_goal','periodSetBox','spSetBox','settings_recurring','payBox']],
+ ['আর্থিক ব্যবস্থাপনা','Finance & Budgeting',['curBox','settings_budget','settings_goal','periodSetBox','spSetBox','settings_recurring','payBox','qxBox']],
  ['চেহারা ও ভাষা','Appearance',['settings_theme','settings_lang']],
- ['রিমাইন্ডার ও নোটিফিকেশন','Reminders & Notifications',['rmBox','ntSetBox','ntBox']],
- ['নিরাপত্তা ও লক','Security & Lock',['lock_heading','pin_heading','secPlusBox']],
- ['ডেটা ও ব্যাকআপ','Data & Backup',['cloudSyncBox','backup_heading']],
- ['পছন্দ ও উইজেট','Preferences',['prefPlusBox','wgSetBox','installBox']],
- ['ডেভেলপার','Developer',['devModeBox','dev_mode_title']],
- ['সেশন','Session',['accountBox']]
+ ['অ্যালার্ট ও রিমাইন্ডার','Alerts & Reminders',['rmBox','ntSetBox','ntBox']],
+ ['নিরাপত্তা ও অ্যাক্সেস','Security & Access',['lock_heading','pin_heading','secPlusBox']],
+ ['ডেটা ম্যানেজমেন্ট','Data Management',['cloudSyncBox','backup_heading']],
+ ['পছন্দ ও উইজেট','Preferences & Widgets',['prefPlusBox','wgSetBox','installBox']],
+ ['অ্যাডভান্সড','Advanced',['devModeBox','dev_mode_title']],
+ ['সেশন','Sessions',['accountBox']]
 ];
 const dets=()=>[].slice.call(sec.children).filter(n=>n.matches&&n.matches('details.setBox'));
 const h3Of=d=>d.querySelector(':scope > summary h3');
@@ -20568,13 +20684,13 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
     return (isFinite(v) && Math.abs(v) < 1e12) ? Math.round(v * 100) / 100 : 0;
   }
   function amount(){ var v = calc(Q.expr); return v > 0 ? v : 0; }
-  function money(v){ return '৳ ' + (+v).toLocaleString('en-IN', {maximumFractionDigits: 2}); }
+  function money(v){ return (ftCurSym()+' ') + (+v).toLocaleString(ftCurLocale(), {maximumFractionDigits: 2}); }
   function hasOp(){ return OPS.test(Q.expr); }
   function expHtml(){ return E(Q.expr).replace(/([÷×−+])/g, '<i>$1</i>'); }
   function amtRender(){
     var e = $('qaExp'), r = $('qaAmt'); if(!e || !r) return;
     if(hasOp()){ e.innerHTML = expHtml(); r.textContent = '= ' + money(calc(Q.expr)); e.scrollLeft = e.scrollWidth; }
-    else { e.innerHTML = ''; r.textContent = '৳ ' + (Q.expr || '0'); }
+    else { e.innerHTML = ''; r.textContent = (ftCurSym()+' ') + (Q.expr || '0'); }
   }
 
   /* ---------- open / close ---------- */
@@ -20683,7 +20799,7 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
         + (Q.note ? '<div class="qli nt"><span>' + L('নোট', 'Note') + '</span><b>' + E(Q.note) + '</b></div>' : '')
         + '<div class="qli"><span>' + L('তারিখ ও সময়', 'Date & Time') + '</span><b>' + E(nowLabel()) + '<button type="button" id="qaCal" aria-label="' + L('তারিখ বদলান', 'Change date') + '">' + ICON_CAL + '</button></b></div>'
         + '</div>'
-        + '<div class="qrow"><button type="button" class="qbtn" id="qaBk">' + L('পিছনে', 'Back') + '</button><button type="button" class="qbtn p" id="qaSave">' + L('সেভ', 'Save') + '</button></div>';
+        + '<div class="qrow"><button type="button" class="qbtn" id="qaBk">' + L('পিছনে', 'Back') + '</button><button type="button" class="qbtn p" id="qaSave">' + ((isE && window.ftRoastOn && ftRoastOn()) ? 'Submit a loss' : L('সেভ', 'Save')) + '</button></div>';
     }
     s.innerHTML = '<div class="qstep">' + h + '</div>';
     wire();
@@ -20791,6 +20907,7 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
     var btn = $('qaSave'); if(btn) btn.disabled = true;
     Q.saving = true;
     try{
+      window.__ftMerged = 0;
       editingTxId = null; currentType = Q.type;
       if(Q.type === 'expense'){ refreshCategorySelect(); $('inCategory').value = Q.cat; }
       else { refreshSourceSelect(); $('inSource').value = Q.cat; }
@@ -20800,14 +20917,14 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
       $('inTime').value = Q.dt ? Q.dt.time : nowTime();
       saveTx();
     }catch(err){ console.error('quick add failed', err); Q.saving = false; if(btn) btn.disabled = false; toast(L('সেভ করা যায়নি', 'Could not save')); return; }
-    if(data.transactions.length > baseCount){ done(); return; }
+    if(data.transactions.length > baseCount || window.__ftMerged){ done(); return; }
     /* not saved yet (a warning / confirm dialog may be open, or a check refused it): keep the sheet and finish as soon as the entry lands */
     if(btn) btn.disabled = false;
     clearInterval(watch); var n = 0;
     watch = setInterval(function(){
       n++;
       if(!Q){ clearInterval(watch); return; }
-      if(data.transactions.length > baseCount){ done(); }
+      if(data.transactions.length > baseCount || window.__ftMerged){ done(); }
       else if(n > 100){ clearInterval(watch); watch = null; }
     }, 300);
   }
@@ -20815,6 +20932,781 @@ html body #loginScreen .lgFoot .mi{width:15px;height:15px;flex:none;color:var(--
     try{ if(Q.cat) localStorage.setItem(lastKey(), Q.cat); }catch(e){}
     sheetClose(); toast(L('সেভ হয়েছে ✓', 'Saved ✓'));
   }
+})();
+</script>
+
+<style id="ftCurCss">
+#curBox .curNow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--primary) 10%,var(--card));border:1.5px solid color-mix(in srgb,var(--primary) 35%,var(--border));margin-bottom:10px}
+#curBox .curNow b.s{min-width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--primary);color:#fff;padding:0 6px}
+#curBox .curNow small{display:block;color:var(--muted);font-size:12px}
+#curBox .curNow span.n{font-weight:700;font-size:14px}
+#curBox .curSrch{width:100%;margin-bottom:8px}
+#curBox .curList{max-height:300px;overflow-y:auto;border:1.5px solid var(--border);border-radius:14px;-webkit-overflow-scrolling:touch}
+#curBox .curRow{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;background:transparent;border:0;border-bottom:1px solid var(--border);color:var(--text);text-align:left;font:inherit;cursor:pointer}
+#curBox .curRow:last-child{border-bottom:0}
+#curBox .curRow:active,#curBox .curRow.on{background:color-mix(in srgb,var(--primary) 12%,transparent)}
+#curBox .curRow .sy{min-width:38px;text-align:center;font-weight:800;color:var(--primary)}
+#curBox .curRow .cd{font-weight:700;font-size:13px;min-width:38px}
+#curBox .curRow .nm{flex:1;font-size:13px;color:var(--muted)}
+#curBox .curNote{font-size:12.5px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+</style>
+<script id="ftCurSettings">
+(function(){
+  var sec=document.getElementById('sec-settings'); if(!sec) return;
+  var bn=function(){ return typeof currentLang!=='undefined'&&currentLang==='bn'; };
+  var bl=function(b,e){ return '<span class="bn">'+b+'</span><span class="en">'+e+'</span>'; };
+  var CODES='AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLP CNY COP CRC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SOS SRD SSP STN SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XOF XPF YER ZAR ZMW ZWL'.split(' ');
+  var names=function(lang){ try{ return new Intl.DisplayNames([lang],{type:'currency'}); }catch(e){ return null; } };
+  var nEn=names('en'), nBn=names('bn');
+  var nameOf=function(c){ var d=bn()?nBn:nEn; try{ return (d&&d.of(c))||(nEn&&nEn.of(c))||c; }catch(e){ return c; } };
+  var LIST=CODES.map(function(c){ return {c:c,s:ftCurSymOf(c),en:(function(){ try{ return nEn?nEn.of(c):c; }catch(e){ return c; } })()}; });
+  var box=document.createElement('details'); box.className='box setBox'; box.id='curBox';
+  box.innerHTML='<summary><span class="setIco" style="--c:#16a34a"><i class="mi" style="--m:var(--ic-globe)"></i></span><h3>'+bl('মুদ্রা পছন্দ','Currency Preferences')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
+  var body=box.querySelector('.setBody');
+  function draw(q){
+    q=(q||'').trim().toLowerCase();
+    var cur=ftCurCode();
+    var rows=LIST.filter(function(x){ return !q||x.c.toLowerCase().indexOf(q)>-1||x.en.toLowerCase().indexOf(q)>-1||nameOf(x.c).toLowerCase().indexOf(q)>-1||x.s.toLowerCase().indexOf(q)>-1; });
+    var list=body.querySelector('.curList');
+    list.innerHTML=rows.map(function(x){ return '<button type="button" class="curRow'+(x.c===cur?' on':'')+'" data-c="'+x.c+'"><span class="sy">'+x.s+'</span><span class="cd">'+x.c+'</span><span class="nm">'+nameOf(x.c)+'</span></button>'; }).join('')||'<div style="padding:14px;color:var(--muted);font-size:13px">'+(bn()?'কিছু পাওয়া যায়নি':'No currency found')+'</div>';
+  }
+  function build(){
+    var cur=ftCurCode();
+    body.innerHTML='<div class="curNow"><b class="s">'+ftCurRawSym()+'</b><div><small>'+bl('বর্তমান মুদ্রা','Current currency')+'</small><span class="n">'+cur+' — '+nameOf(cur)+'</span></div></div>'
+      +'<input class="curSrch" type="search" id="curSrch" placeholder="'+(bn()?'খুঁজুন: USD, Dollar, ৳ …':'Search: USD, Dollar, € …')+'" autocomplete="off">'
+      +'<div class="curList"></div>'
+      +'<p class="curNote">'+bl('মুদ্রা বদলালে অ্যাপের সব জায়গায় চিহ্ন বদলে যাবে। আগের অঙ্কগুলো রূপান্তর (কনভার্ট) হয় না — শুধু চিহ্ন বদলায়।','Changing the currency updates the symbol everywhere in the app. Existing amounts are not converted — only the symbol changes.')+'</p>';
+    draw('');
+    body.querySelector('#curSrch').oninput=function(){ draw(this.value); };
+    body.querySelector('.curList').onclick=function(e){
+      var b=e.target.closest('.curRow'); if(!b) return;
+      var c=b.getAttribute('data-c'); if(c===ftCurCode()) return;
+      var msg=(bn()?'মুদ্রা বদলাবেন? অ্যাপ একবার রিলোড হবে।':'Switch currency? The app will reload once.')+'\n\n'+c+' ('+ftCurSymOf(c)+') — '+nameOf(c);
+      if(typeof appDialog==='function') appDialog(msg,{confirm:true,yes:bn()?'বদলান':'Switch',icon:'globe'},function(){ ftSetCurrency(c); });
+      else if(confirm(msg)) ftSetCurrency(c);
+    };
+  }
+  build();
+  box.addEventListener('toggle',function(){ if(box.open) build(); });
+  sec.appendChild(box);
+})();
+</script>
+
+<style id="ftDupCss">
+#ftDupOv{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:22px}
+#ftDupOv .dBox{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:28px;padding:24px 22px 20px;max-width:380px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.45);font-family:inherit;max-height:92vh;overflow:auto}
+#ftDupOv h4{margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;word-break:break-word}
+#ftDupOv p{margin:0 0 12px;font-size:15px;line-height:1.5;color:var(--muted)}
+#ftDupOv .dInfo{background:color-mix(in srgb,var(--text) 6%,var(--card));border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:14px;line-height:1.9;word-break:break-word}
+#ftDupOv .dInfo .c{color:var(--red);font-weight:800}
+#ftDupOv .dRow{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+#ftDupOv button{font:inherit;font-weight:700;font-size:15px;border-radius:999px;padding:12px 22px;cursor:pointer}
+#ftDupOv .dComb{background:var(--red);color:#fff;border:0;width:62%;margin-left:auto;display:block}
+#ftDupOv .dCancel{background:transparent;border:0;color:var(--red)}
+#ftDupOv .dSep{background:transparent;border:1.5px solid var(--primary);color:var(--primary)}
+</style>
+<script id="ftDupGuard">
+/* Same entry (same type + category/source, same amount, no note) saved again within 10 seconds -> ask: Combine / Save separate / Cancel */
+(function(){
+  var WIN=10000;
+  var T=function(b,e){ return currentLang==='bn'?b:e; };
+  var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+  var r2=function(n){ return Math.round(n*100)/100; };
+  var prev=window.ftSpendGuard;
+  function tsOf(x){ if(x&&x.ts) return +x.ts||0; var n=parseInt(String((x&&x.id)||'').split('-')[0],10); return n>1e12?n:0; }
+  function keyOf(x){ return x.type==='expense'?x.category:x.source; }
+  function findDup(tx){
+    if(!tx||(tx.type!=='expense'&&tx.type!=='deposit')) return null;
+    if(String(tx.note||'').trim()) return null;
+    if(!keyOf(tx)||!(+tx.amount>0)) return null;
+    if(tx.date!==todayStr()) return null;
+    var now=Date.now(), best=null;
+    data.transactions.forEach(function(x){
+      if(x.type!==tx.type||keyOf(x)!==keyOf(tx)||String(x.note||'').trim()) return;
+      if((x.fund||null)!==(tx.fund||null)||x.date!==tx.date) return;
+      if(x.id&&String(x.id).indexOf('rc-')===0) return;
+      if(Math.abs((+x.amount||0)/(x.qty||1)-(+tx.amount))>0.004) return;
+      var t=tsOf(x); if(!t||now-t>WIN||now<t-2000) return;
+      if(!best||t>tsOf(best)) best=x;
+    });
+    return best;
+  }
+  function refresh(){
+    ['renderDash','renderAccounts','renderHistory','renderLoans','updateHome','renderWidget'].forEach(function(f){ try{ if(typeof window[f]==='function') window[f](); }catch(e){} });
+  }
+  window.ftSpendGuard=function(tx,go){
+    try{
+      if(typeof go==='function'){
+        var ex=findDup(tx);
+        if(ex){
+          var unit=+tx.amount, exQ=ex.qty||1, tot=r2((+ex.amount)+unit), totQ=exQ+1;
+          var F=function(n){ return fmt(n); }, cat=keyOf(tx);
+          var old=document.getElementById('ftDupOv'); if(old) old.remove();
+          var ov=document.createElement('div'); ov.id='ftDupOv';
+          ov.innerHTML='<div class="dBox" role="alertdialog">'
+            +'<h4>'+T('আগের '+esc(cat)+' এন্ট্রি পাওয়া গেছে','Existing '+esc(cat)+' Entry Found')+'</h4>'
+            +'<p>'+T('আপনি এইমাত্র একই '+(tx.type==='expense'?'খরচ':'আয়')+' যোগ করেছেন:','You just logged the same '+(tx.type==='expense'?'expense':'income')+' a moment ago:')+'</p>'
+            +'<div class="dInfo"><div>'+T('আগের','Existing')+': “'+esc(cat)+'” — '+F(ex.amount)+' ('+exQ+')</div>'
+            +'<div>'+T('নতুন','New entry')+': “'+esc(cat)+'” — '+F(unit)+' (1)</div>'
+            +'<div class="c">'+T('একসাথে','Combined')+': '+F(tot)+' ('+totQ+')</div></div>'
+            +'<p>'+T('আগের এন্ট্রির সাথে একসাথে করবেন, নাকি আলাদা এন্ট্রি হিসেবে সেভ করবেন?','Would you like to combine with existing or save as a separate transaction?')+'</p>'
+            +'<button type="button" class="dComb">'+T('একসাথে করুন','Combine')+'</button>'
+            +'<div class="dRow"><button type="button" class="dCancel">'+T('বাতিল','Cancel')+'</button><button type="button" class="dSep">'+T('আলাদা সেভ','Save Separate')+'</button></div></div>';
+          document.body.appendChild(ov);
+          ov.querySelector('.dCancel').onclick=function(){ ov.remove(); };
+          ov.querySelector('.dSep').onclick=function(){
+            ov.remove();
+            var shown=false; try{ shown=prev?prev(tx,go):false; }catch(e){}
+            if(!shown) go();
+          };
+          ov.querySelector('.dComb').onclick=function(){
+            var i=data.transactions.indexOf(ex); if(i<0){ ov.remove(); go(); return; }
+            var merged=Object.assign({},ex,{amount:tot,qty:totQ,ts:Date.now()});
+            var bad=''; try{ bad=validateTxSet(data.transactions.filter(function(x){ return x!==ex; }).concat([merged])); }catch(e){}
+            ov.remove();
+            if(bad){ try{ ftAlertBad(bad); }catch(e){ alert(bad); } return; }
+            data.transactions[i]=merged; saveData();
+            window.__ftMerged=Date.now();
+            ['inAmount','inNote','wgAmt','wgNote'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+            refresh();
+            if(tx.type==='expense'){ try{ window.ftRoastShow&&window.ftRoastShow(); }catch(e){} }
+            try{ window.toast(T(esc(cat)+' এন্ট্রি একসাথে হয়েছে: '+F(tot),'Combined into one '+cat+' entry: '+F(tot))); }catch(e){}
+          };
+          return true;
+        }
+      }
+    }catch(e){}
+    return prev?prev(tx,go):false;
+  };
+})();
+</script>
+
+<style id="ftRoastCss">
+#ftRoastOv{position:fixed;inset:0;z-index:10060;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:22px;animation:ftRoastIn .18s ease-out}
+@keyframes ftRoastIn{from{opacity:0}to{opacity:1}}
+#ftRoastOv .rBox{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:28px;padding:24px 22px 18px;max-width:380px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.45);font-family:inherit;text-align:center;max-height:90vh;overflow:auto;position:relative}
+#ftRoastOv .rX{position:absolute;top:12px;right:12px;width:34px;height:34px;padding:0;min-width:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--muted)}
+#ftRoastOv h4{margin:0 0 12px;padding:0 34px;font-size:20px;font-weight:800}
+#ftRoastOv p{margin:0 0 6px;font-size:16px;line-height:1.6;color:var(--text);word-break:break-word}
+#ftRoastOv button{font:inherit;border:0;cursor:pointer}
+</style>
+<script id="ftRoastMood">
+/* Roast Mood: submit button reads "Submit a loss" for expenses; every saved expense shows a "Finverse Says" popup with a random roast */
+(function(){
+  var KEY='roastMood_v1', LABEL='Submit a loss';
+  var ROASTS=["তুই টাকা ইনকাম করিস নিজের জন্য, আর খরচ করিস দোকানদারদের পরিবার চালানোর জন্য!", "তোর কাছে টাকা আসা মানেই টাকার জীবনের শেষ অধ্যায় শুরু।", "টাকা জমাতে বললে তুই এমন ভাব করিস, যেন তোকে জেলখানায় পাঠানোর কথা বলেছি।", "তোর পকেটে টাকা থাকলে টাকাও রাতে ঘুমাতে পারে না।", "তুই প্রয়োজনের জিনিস কেনার আগে ১০ বার ভাবিস, কিন্তু অপ্রয়োজনীয় জিনিস কেনার আগে ১ সেকেন্ডও না!", "তোর ব্যাংক ব্যালেন্স দেখে মনে হয় টাকা তোকে ব্লক করে দিয়েছে।", "তুই টাকা খরচ করিস এমনভাবে, যেন কাল থেকে পৃথিবীতে আর কোনো দোকান থাকবে না।", "তোর কাছে মাসের বেতন আসা মানে টাকার জন্য বিদায় অনুষ্ঠান।", "তুই Savings করতে চাস, কিন্তু Shopping-এর সামনে তোর সব নীতিকথা হার মেনে যায়।", "তোর খরচের হিসাব রাখলে Calculator-ও Mental Stress-এ চলে যাবে।", "তুই টাকা জমাতে পারিস না, কিন্তু টাকা শেষ করার নতুন নতুন উপায় আবিষ্কার করতে পারিস।", "তোর Spending দেখে মনে হয় তুই দেশের অর্থনীতি একাই সচল রাখছিস।", "তোর কাছে ১০০ টাকা থাকলে ১০০ টাকার জিনিস কেনার জন্য ২০০ টাকার প্ল্যান তৈরি হয়।", "তুই Discount দেখে এত খুশি হোস, যেন দোকানদার তোকে বিয়ে করতে চেয়েছে।", "তোর টাকা খরচের কোনো কারণ লাগে না, শুধু পকেটে টাকা থাকলেই যথেষ্ট।", "তোর Future Plan-এর সবচেয়ে বড় শত্রু তোর Present Shopping!", "তুই টাকা জমাতে বসলে হঠাৎ মনে পড়ে যায় জীবনে অনেক কিছু কেনা বাকি।", "তোর Wallet-এর অবস্থা দেখে মনে হয় সেখানে টাকা না, স্মৃতি সংরক্ষণ করা হয়।", "তুই খরচ করার সময় Millionaire, আর হিসাব করার সময় সাধারণ নাগরিক।", "তোর কাছে Budget মানে মাসের শুরুতে লেখা একটা সুন্দর মিথ্যা।", "তুই ৫০০ টাকা বাঁচানোর জন্য ২০০০ টাকার অপ্রয়োজনীয় জিনিস কিনে ফেলিস।", "তোর টাকা খরচের Speed দেখে Formula 1 গাড়িও লজ্জা পাবে।", "তুই টাকা জমাতে পারলে FinTrack-এর প্রয়োজনই হতো না, কিন্তু তোর অবস্থা দেখে App-টাই চাকরি পেয়েছে!", "তোর পকেটে টাকা থাকলে Shopping Mall-এর CCTV-ও সতর্ক হয়ে যায়।", "তুই নিজের ভবিষ্যতের চেয়ে অনলাইন Shopping-এর Delivery Date নিয়ে বেশি চিন্তা করিস।", "তোর খরচের হিসাব শুনলে IMF-ও Emergency Meeting ডাকবে।", "তুই টাকা বাঁচানোর সিদ্ধান্ত নিস ঠিক তখনই, যখন টাকা শেষ হয়ে যায়।", "তোর কাছে Emergency Fund মানে Emergency Shopping-এর Fund।", "তুই একটা জিনিস কিনে বাসায় আসার পর বুঝিস, আসলে জিনিসটা কেনার কোনো দরকারই ছিল না।", "তোর Bank Statement দেখে মনে হয় তুই প্রতিদিন কোনো না কোনো ব্যবসা কিনে ফেলিস।", "তুই টাকা খরচ করার আগে নিজের বিবেককে জিজ্ঞেস করিস না, কারণ বিবেক আগেই Resign করেছে।", "তোর Savings Account-এর চেয়ে Shopping Cart বেশি Active।", "তুই মাসের শুরুতে বলিস, এবার টাকা জমাবো; মাসের শেষে বলিস, পরের মাস থেকে শুরু।", "তোর কাছে ১০০০ টাকা থাকলে ১০ মিনিটের মধ্যে সেটা কোথায় গেল, তদন্ত কমিটি গঠন করতে হবে।", "তুই টাকা জমাতে পারিস না, কিন্তু অজুহাত জমাতে তোর কোনো সমস্যা নেই।", "তোর Wallet-এর ভিতরে টাকা ঢোকে Guest হিসেবে, বের হয় Permanent Resident হয়ে!", "তুই অপ্রয়োজনীয় জিনিস কেনার ক্ষেত্রে এত Consistent, জীবনের অন্য কাজে এই Consistency থাকলে CEO হয়ে যেতিস।", "তোর কাছে টাকা খরচ করা Hobby না, এটা একটা Full-time Profession।", "তুই নিজের Budget ভাঙিস এমনভাবে, যেন Budget তোর কোনো আত্মীয় না।", "তোর টাকা বাঁচানোর প্ল্যান শুনলে টাকাই হেসে ফেলে।", "তুই ২০০ টাকার খাবার খেয়ে ৫০০ টাকার Delivery Charge দিতে রাজি!", "তোর Shopping History দেখে মনে হয় তুই একটা ছোটখাটো Supermarket চালাস।", "তুই টাকা জমাতে চাস, কিন্তু প্রতিদিন নতুন কোনো Need তৈরি হয়ে যায়।", "তোর কাছে টাকা খরচের পর Regret আসে, কিন্তু কেনার আগে কখনো আসে না।", "তুই নিজের পকেটের বিরুদ্ধে নিজেই সবচেয়ে বড় ষড়যন্ত্রকারী।", "তোর টাকা এমনভাবে হারিয়ে যায়, যেন Bermuda Triangle-এর সঙ্গে তোর বিশেষ চুক্তি আছে।", "তুই মাসের বেতন পাওয়ার পর যেভাবে খরচ করিস, মনে হয় বেতনটা তোর কাছে ধার নিয়েছিল!", "তোর Financial Discipline দেখে Military Training-ও ব্যর্থ হয়ে যাবে।", "তুই একটা জিনিস কিনতে গিয়ে আরও পাঁচটা জিনিস কিনে ফেলিস, এটাকে বলে Financial Domino Effect।", "তোর টাকা জমার সম্ভাবনা আর মরুভূমিতে বৃষ্টির সম্ভাবনা প্রায় সমান!", "তুই টাকা খরচ করার সময় Tax-এর কথা ভুলে যাস, কিন্তু টাকা কমে গেলে সব মনে পড়ে।", "তোর ব্যাংক অ্যাকাউন্টে টাকা থাকার চেয়ে টাকা আসার Notification বেশি গুরুত্বপূর্ণ।", "তুই নিজের Life Upgrade করার আগে Gadget Upgrade করতে ব্যস্ত।", "তোর কাছে ৫০০ টাকা বাঁচানো কঠিন, কিন্তু ৫০০০ টাকা খরচ করা একদম সহজ।", "তুই টাকা জমাতে চাস, কিন্তু টাকা দেখলেই তোর হাতের আঙুল Shopping Mode-এ চলে যায়।", "তোর খরচের তালিকা দেখে মনে হয় তুই নিজের সঙ্গে প্রতিদিন নতুন নতুন Contract করিস।", "তুই টাকা খরচ করে আনন্দিত হোস, তারপর Balance দেখে জীবন নিয়ে চিন্তা করিস।", "তোর কাছে Budget Planning হলো খরচ শেষ হওয়ার পর হিসাব মেলানোর চেষ্টা।", "তুই Savings-এর কথা ভাবিস, আর Spending তোর হয়ে সিদ্ধান্ত নিয়ে ফেলে।", "তোর টাকা তোর সঙ্গে থাকতে চায় না, তাই সুযোগ পেলেই চলে যায়।", "তুই একটা মাসের জন্য টাকা জমাতে পারলে সেটা National Achievement হিসেবে ঘোষণা করা উচিত।", "তোর Financial Future নিয়ে চিন্তা করার আগে তোর Wallet-এর Present উদ্ধার করা দরকার।", "তুই টাকা খরচ করিস এমনভাবে, যেন প্রতিটা দোকানে তোর নামে বাকি রাখা আছে।", "তোর পকেটে টাকা থাকলে তোর আত্মবিশ্বাস বেড়ে যায়, আর টাকা শেষ হলে WiFi-ও Slow মনে হয়।", "তুই টাকা জমাতে চাস, কিন্তু প্রতিদিন নিজের Savings-এর বিরুদ্ধে নতুন আইন পাস করিস।", "তোর কেনাকাটার পরিমাণ দেখে মনে হয় তুই একাই পুরো দেশের Consumer Demand সামলাচ্ছিস।", "তুই টাকা খরচের পর হিসাব করিস, কেনার আগে হিসাব করলে এতদিনে ধনী হয়ে যেতিস।", "তোর কাছে টাকা থাকা মানেই টাকা খরচ করার একটা নতুন সুযোগ তৈরি হওয়া।", "তুই একটা অপ্রয়োজনীয় জিনিস কিনে নিজেকে বোঝাস, এটা আসলে Investment!", "তোর Savings Plan এতটাই দুর্বল যে প্রথম দিনেই নিজের কাছে আত্মসমর্পণ করে।", "তুই টাকা জমাতে না পারলেও Shopping-এর নতুন Category তৈরি করতে পারিস।", "তোর Wallet-এ টাকা থাকলে সেটা তোর জন্য সুখবর না, দোকানদারদের জন্য সুখবর।", "তুই মাসের শুরুতে Financial Expert, আর মাসের শেষে Financial Victim।", "তোর খরচের হিসাব এত রহস্যময় যে Sherlock Holmes-ও খুঁজে পাবে না।", "তুই টাকা খরচ করার আগে ভাবিস না, কিন্তু পরে ১০ দিন ধরে ভাবিস।", "তোর Financial Goal-এর সঙ্গে তোর Shopping Habit-এর কোনো যোগাযোগ নেই।", "তুই টাকা জমাতে চাস, কিন্তু নিজের হাতকে Control করতে পারিস না।", "তোর টাকা শেষ হওয়ার পরও তোর Shopping Desire শেষ হয় না।", "তুই টাকা খরচ করে এমন ভাব করিস, যেন পৃথিবীর সব টাকা তোর উত্তরাধিকার সূত্রে পাওয়া।", "তোর Budget-এর আয়ু মশার আয়ুর চেয়েও কম!", "তুই টাকা বাঁচানোর জন্য App Download করিস, তারপর সেই App-এর Subscription কিনতে টাকা খরচ করিস।", "তোর Savings Account খুলে লাভ কী, যদি টাকা সেখানে যাওয়ার আগেই অন্য কোথাও চলে যায়?", "তুই টাকা জমাতে না পারার জন্য পরিস্থিতিকে দায়ী করিস, অথচ পরিস্থিতি তোকে কিছু কিনতে বলেনি!", "তোর কাছে টাকা খরচ করার জন্য কোনো Occasion লাগে না, Tuesday হলেও চলে।", "তুই নিজের Financial Life-এর Main Villain, আর Hero হওয়ার অভিনয় করিস।", "তোর টাকা এত অল্প সময় থাকে যে তাকে চিনে রাখার আগেই বিদায় নিতে হয়।", "তুই ১০০ টাকা খরচ করে ১০০০ টাকার Satisfaction খুঁজিস।", "তোর Financial Management দেখে মনে হয় তুই টাকা নিয়ে কোনো Personal Revenge নিচ্ছিস।", "তুই প্রতিদিন নতুন করে Savings শুরু করিস, কিন্তু প্রতিদিনই Launch Event-এর পর Project বন্ধ হয়ে যায়।", "তোর Spending Habit ঠিক না হলে একদিন Calculator-কে দিয়ে ধার চাইতে হবে।", "তুই টাকা ইনকাম করার চেয়ে টাকা খরচ করার ক্ষেত্রে অনেক বেশি Passionate।", "তোর কাছে টাকা জমা রাখা মানে পকেটে বরফ রাখা, একটু পরেই গলে যাবে।", "তুই নিজের Future Self-এর কাছ থেকে টাকা ধার নিয়ে Present Self-এর Shopping করিস।", "তোর Financial Freedom আসার আগেই তোর Financial Balance স্বাধীন হয়ে পালিয়ে যায়।", "তুই টাকা বাঁচানোর সিদ্ধান্ত নিয়ে আবার সেই সিদ্ধান্ত উদযাপন করতে গিয়ে টাকা খরচ করিস।", "তোর খরচের হিসাব দেখে মনে হয় টাকা তোর জীবনে শুধু অতিথি হয়ে আসে।", "তুই যদি খরচ করার অর্ধেক শক্তি টাকা জমানোর পেছনে দিতিস, এতদিনে নিজের ব্যাংক খুলে ফেলতিস।", "তোর Wallet-এর অবস্থা দেখে মনে হয় টাকা সেখানে ঢুকতে ভয় পায়।", "তুই টাকা খরচ করার আগে একবার FinTrack খুলে দেখলে হয়তো নিজের ভবিষ্যৎটা একটু বাঁচাতে পারতি।", "শেষ কথা—তুই টাকার পেছনে দৌড়াস, টাকা তোর পেছনে আসে, আর তুই দুজনকেই Shopping Mall-এ নিয়ে গিয়ে শেষ করে দিস!"];
+  var ROASTS_EN=["You earn money for yourself, but spend it to keep the shopkeepers' families running!", "The moment money reaches you, it begins the final chapter of its life.", "Ask you to save money and you act like I've threatened you with prison.", "When there's cash in your pocket, even the cash can't sleep at night.", "You think ten times before buying something you need, but not even one second before buying something you don't!", "Your bank balance looks like money has blocked you.", "You spend like every shop on earth shuts down tomorrow.", "For you, payday is just a farewell party for your money.", "You want to save, but every principle you have surrenders in front of Shopping.", "Keep your expense records and even the calculator will go into mental stress.", "You can't save money, but you keep inventing brand-new ways to finish it.", "Looking at your spending, one would think you're single-handedly keeping the economy running.", "With 100 in hand, you make a 200 plan to buy 100 worth of stuff.", "You light up at a discount like the shopkeeper just proposed to you.", "Your spending needs no reason; having money in your pocket is reason enough.", "The biggest enemy of your future plan is your present shopping!", "The moment you sit down to save, you suddenly remember how much of life is still left to buy.", "Looking at your wallet, it seems to hold not money but memories.", "You spend like a millionaire and count like an ordinary citizen.", "To you, a budget is a beautiful lie written at the start of the month.", "You buy 2,000 worth of useless things just to save 500.", "Seeing your spending speed, even a Formula 1 car would feel embarrassed.", "If you could save money, FinTrack wouldn't be needed, but seeing your condition, the app itself got a job!", "When you have money in your pocket, even the mall's CCTV gets alert.", "You worry more about an online order's delivery date than your own future.", "Your spending report would make the IMF call an emergency meeting.", "You decide to save exactly when the money has run out.", "For you, an Emergency Fund means a fund for emergency shopping.", "You buy something, get home, and realize you never needed it at all.", "Your bank statement looks like you buy a business every single day.", "You don't consult your conscience before spending, because your conscience resigned long ago.", "Your shopping cart is more active than your savings account.", "At the start of the month you say \"I'll save this time\"; at the end, \"starting next month.\"", "If you have 1,000, a committee must be formed to investigate where it went within 10 minutes.", "You can't save money, but you have no trouble collecting excuses.", "Money enters your wallet as a guest and leaves as a permanent resident!", "You're so consistent at buying useless things that with that consistency in anything else you'd be a CEO.", "Spending money isn't your hobby, it's your full-time profession.", "You break your budget as if it were no relative of yours.", "Hearing your savings plan, even the money laughs.", "You'll happily pay a 500 delivery charge for a 200 meal!", "Your shopping history looks like you run a small supermarket.", "You want to save, but a new \"need\" appears every single day.", "Regret arrives after you spend, but never before you buy.", "You are the biggest conspirator against your own pocket.", "Your money vanishes as if you have a special deal with the Bermuda Triangle.", "The way you spend after payday, it seems the salary had borrowed money from you!", "Looking at your financial discipline, even military training would fail.", "You go out to buy one thing and come back with five more. That's called the Financial Domino Effect.", "Your chance of saving is about as good as rain in a desert!", "You forget about tax while spending, but remember everything when the balance drops.", "To you, the notification of money arriving matters more than money in the account.", "You're busy upgrading your gadgets before upgrading your life.", "Saving 500 is hard for you, but spending 5,000 is effortless.", "You want to save, but at the sight of money your fingers switch to Shopping Mode.", "Your expense list looks like you sign new contracts with yourself every day.", "You enjoy spending, then check the balance and worry about life.", "For you, budget planning means trying to balance the books after the money is gone.", "You think about Savings while Spending makes the decision for you.", "Your money doesn't want to stay with you, so it leaves at the first chance.", "If you manage to save for one whole month, it should be declared a National Achievement.", "Before worrying about your financial future, your wallet's present needs rescuing.", "You spend as if there's a tab running in your name at every shop.", "Cash in your pocket boosts your confidence, and when it runs out even the WiFi feels slow.", "You want to save, but every day you pass a new law against your own savings.", "Judging by your purchases, you're single-handedly handling the whole country's consumer demand.", "You calculate after spending; if you had calculated before buying, you'd be rich by now.", "For you, having money just means a new chance to spend it.", "You buy something useless and convince yourself it's actually an Investment!", "Your savings plan is so weak it surrenders on day one.", "You can't save, but you can invent new shopping categories.", "Money in your wallet is good news for the shopkeepers, not for you.", "You're a Financial Expert at the start of the month and a Financial Victim at the end.", "Your spending is so mysterious that even Sherlock Holmes couldn't trace it.", "You don't think before spending, but you think for 10 days afterward.", "Your financial goals and your shopping habits have no connection whatsoever.", "You want to save, but you can't control your own hands.", "Even after the money runs out, your shopping desire doesn't.", "You spend as if all the money in the world is your inheritance.", "Your budget has a shorter lifespan than a mosquito!", "You download an app to save money, then spend money on that app's subscription.", "What's the point of a savings account if the money goes elsewhere before it gets there?", "You blame circumstances for not saving, yet circumstances never told you to buy anything!", "You don't need an occasion to spend money; a Tuesday will do.", "You are the main villain of your own financial life while pretending to be the hero.", "Your money stays so briefly that it leaves before you can recognize it.", "You spend 100 while searching for 1,000 worth of satisfaction.", "Your financial management looks like you're taking personal revenge on money.", "You restart saving every day, but every day the project shuts down right after the launch event.", "If you don't fix your spending habits, you'll end up asking the calculator for a loan.", "You're far more passionate about spending money than earning it.", "Keeping money with you is like keeping ice in your pocket; it melts soon enough.", "You borrow from your Future Self to fund your Present Self's shopping.", "Before Financial Freedom arrives, your balance gains its own freedom and runs away.", "You decide to save, then spend money celebrating that very decision.", "Looking at your spending, money seems to be just a guest in your life.", "If you put half the energy you spend on spending into saving, you'd have opened your own bank by now.", "Looking at your wallet, it seems money is afraid to enter it.", "If you had opened FinTrack before spending, you might have saved your future a little.", "Final word: you chase money, money chases you, and you take both to the mall and finish them off!"];
+  var bag=[], last=-1;
+  var on=function(){ try{ return localStorage.getItem(KEY)==='1'; }catch(e){ return false; } };
+  window.ftRoastOn=on;
+  function pick(){
+    if(!bag.length){ for(var i=0;i<ROASTS.length;i++) bag.push(i); for(var j=bag.length-1;j>0;j--){ var k=Math.floor(Math.random()*(j+1)),t=bag[j]; bag[j]=bag[k]; bag[k]=t; } if(bag.length>1&&bag[bag.length-1]===last){ var x=bag.shift(); bag.push(x); } }
+    last=bag.pop(); return (typeof currentLang!=='undefined'&&currentLang==='bn')?ROASTS[last]:ROASTS_EN[last];
+  }
+  window.ftRoastShow=function(){
+    if(!on()) return;
+    try{
+      var old=document.getElementById('ftRoastOv'); if(old) old.remove();
+      var ov=document.createElement('div'); ov.id='ftRoastOv';
+      var box=document.createElement('div'); box.className='rBox'; box.setAttribute('role','alertdialog');
+      box.innerHTML='<button type="button" class="rX" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button><h4>Finverse Says</h4><p></p>';
+      box.querySelector('p').textContent=pick();
+      ov.appendChild(box); document.body.appendChild(ov);
+      var close=function(){ ov.remove(); };
+      box.querySelector('.rX').onclick=close;
+      ov.addEventListener('click',function(e){ if(e.target===ov) close(); });
+    }catch(e){}
+  };
+  /* popup after every NEW expense (editing an old one does not count) */
+  function wrap(name){
+    var f=window[name]; if(typeof f!=='function') return;
+    window[name]=function(){
+      var n=data.transactions.length, ed=(typeof editingTxId!=='undefined')?editingTxId:null;
+      var r=f.apply(this,arguments);
+      try{ if(!ed&&data.transactions.length>n){ var x=data.transactions[data.transactions.length-1]; if(x&&x.type==='expense') window.ftRoastShow(); } }catch(e){}
+      return r;
+    };
+  }
+  wrap('saveTx'); wrap('wgAddExp');
+  /* main Add form button */
+  function label(){
+    try{
+      var b=document.getElementById('saveTxBtn'); if(!b) return;
+      var want=on()&&currentType==='expense'&&!editingTxId;
+      if(want){ if(b.textContent!==LABEL) b.textContent=LABEL; }
+      else if(b.textContent===LABEL){ b.textContent=editingTxId?t('btn_update'):t('btn_save'); }
+    }catch(e){}
+  }
+  setInterval(label,400);
+  /* settings toggle, inside App Preferences */
+  function addToggle(){
+    var pb=document.getElementById('prefPlusBox'); if(!pb||document.getElementById('roastRow')) return;
+    var body=pb.querySelector('.setBody')||pb;
+    var l=document.createElement('label'); l.className='ftRow'; l.id='roastRow';
+    l.innerHTML='<span><span class="bn">খরচ রিয়েলিটি চেক</span><span class="en">Spending Reality Check</span></span><input type="checkbox">';
+    var c=l.querySelector('input'); c.checked=on();
+    c.onchange=function(){ try{ localStorage.setItem(KEY,c.checked?'1':'0'); }catch(e){} label(); };
+    body.appendChild(l);
+  }
+  addToggle(); setTimeout(addToggle,1500);
+})();
+</script>
+
+<style id="ftLoanCss">
+#personWrap{position:relative}
+#ftLoanSug{position:absolute;left:0;right:0;top:100%;z-index:60;margin-top:6px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 14px 34px rgba(0,0,0,.18);max-height:300px;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
+#ftLoanSug.on{display:block}
+#ftLoanSug .lsH{padding:9px 14px 5px;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.ftRowP{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 14px;background:transparent;border:0;border-top:1px solid var(--border);color:var(--text);text-align:left;font:inherit;cursor:pointer}
+#ftLoanSug .ftRowP:first-of-type{border-top:0}
+.ftRowP:active{background:color-mix(in srgb,var(--primary) 10%,transparent)}
+.ftRowP .pN{font-weight:700;font-size:14px;word-break:break-word}
+.ftRowP .pS{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
+.ftRowP .pA{font-weight:800;font-size:13px;white-space:nowrap;text-align:right}
+.ftRowP .pA small{display:block;font-weight:600;font-size:10.5px;color:var(--muted)}
+.ftPos{color:var(--green)}.ftNeg{color:var(--red)}
+.ftLid{display:inline-block;font:700 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.5px;padding:1px 7px;border-radius:7px;background:color-mix(in srgb,var(--primary) 12%,var(--card));color:var(--primary);border:1px solid color-mix(in srgb,var(--primary) 28%,transparent);white-space:nowrap}
+button.ftLid{cursor:pointer;font-family:inherit;font-weight:700}
+#ftLoanChip{display:none;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--text) 5%,var(--card));border:1px dashed var(--border);font-size:12.5px;color:var(--muted)}
+#ftLoanChip.on{display:flex}
+#ftLoanChip .ftLid{font-size:12.5px}
+.ftLids{margin-top:5px}
+.ftLids .ftLid{font-size:10.5px}
+#ftLedgerBox .lgS{width:100%;margin:2px 0 10px}
+#ftLedgerBox .lgL{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:14px}
+#ftLedgerBox .lgE{padding:16px;text-align:center;color:var(--muted);font-size:13px}
+#ftLedgerBox .ftRowP:first-child{border-top:0}
+#ftStmt{position:fixed;inset:0;z-index:10080;background:rgba(15,23,42,.62);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 10px 40px}
+#ftStmt .sSheet{position:relative;background:#fff;color:#0f172a;max-width:760px;margin:0 auto;border-radius:18px;padding:22px 18px 18px;box-shadow:0 24px 60px rgba(0,0,0,.4);font-family:inherit}
+#ftStmt .sBar{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin:-6px -4px 12px;flex-wrap:wrap}
+#ftStmt .sBar button{font:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;cursor:pointer}
+#ftStmt .sBar button.pri{background:#0f172a;border-color:#0f172a;color:#fff}
+#ftStmt .sBar button.sx{width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%}
+#ftStmt h2{margin:0;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;font-weight:800}
+#ftStmt h1{margin:4px 0 6px;font-size:24px;font-weight:800;word-break:break-word}
+#ftStmt .sMeta{font-size:12.5px;color:#475569;line-height:1.7}
+#ftStmt .sMeta .ftLid{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+#ftStmt .sGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:16px 0}
+#ftStmt .sC{border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;background:#f8fafc}
+#ftStmt .sC small{display:block;color:#64748b;font-size:11.5px;font-weight:600}
+#ftStmt .sC b{font-size:16px;display:block;margin-top:2px}
+#ftStmt .sC i{font-style:normal;font-size:11.5px;color:#64748b;font-weight:600}
+#ftStmt .sNet{grid-column:1/-1;background:#0f172a;border-color:#0f172a;color:#fff}
+#ftStmt .sNet small,#ftStmt .sNet i{color:#cbd5e1}
+#ftStmt table{width:100%;border-collapse:collapse;font-size:12.5px}
+#ftStmt th{text-align:left;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#64748b;border-bottom:2px solid #0f172a;padding:6px 6px}
+#ftStmt td{padding:8px 6px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+#ftStmt td.r,#ftStmt th.r{text-align:right;white-space:nowrap}
+#ftStmt td small{display:block;color:#64748b;font-size:11px;margin-top:2px;word-break:break-word}
+#ftStmt .sPos{color:#15803d;font-weight:700}#ftStmt .sNg{color:#b91c1c;font-weight:700}
+#ftStmt .sFoot{margin-top:14px;font-size:11px;color:#64748b;line-height:1.6}
+#ftStmt .sTbl{overflow-x:auto}
+
+/* ===== Loan tab: professional buttons / rows ===== */
+.lnP{display:block !important;padding:14px 0 !important;border-bottom:1px solid var(--border)}
+.lnP:last-child{border-bottom:0}
+.lnTop{display:flex;align-items:center;gap:12px}
+.lnAv{flex:none;width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;background:var(--grad)}
+.lnP.isOwe .lnAv{background:linear-gradient(135deg,#f87171,#dc2626)}
+.lnP.isGet .lnAv{background:linear-gradient(135deg,#34d399,#059669)}
+.lnWho{flex:1;min-width:0}
+.lnName{font-weight:800;font-size:15px;line-height:1.3;word-break:break-word}
+.lnWho .ftLids{margin-top:4px}
+.lnWho .ftLids:empty{display:none}
+.lnAmt{text-align:right;flex:none}
+.lnAmt .tag{display:inline-block;font-weight:800;font-size:15px;padding:5px 12px;border-radius:999px}
+.lnAmt small{display:block;margin-top:3px;font-size:10.5px;font-weight:700;color:var(--muted)}
+.lnActs{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.lnBtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:0 14px;border-radius:12px;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.1px;cursor:pointer;border:1.5px solid transparent;transition:transform .12s,box-shadow .2s,background .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.lnBtn svg{width:16px;height:16px;flex:none}
+.lnBtn:active{transform:scale(.96)}
+.lnPri{flex:1 1 auto;background:var(--grad);color:#fff;box-shadow:0 6px 14px color-mix(in srgb,var(--primary) 32%,transparent)}
+.lnGhost{flex:1 1 auto;background:transparent;color:var(--primary);border-color:color-mix(in srgb,var(--primary) 55%,transparent)}
+.lnSettle{flex:1 1 auto;background:color-mix(in srgb,var(--green) 13%,var(--card));color:var(--green);border-color:color-mix(in srgb,var(--green) 38%,transparent)}
+.lnIcon{flex:none;width:38px;padding:0;background:color-mix(in srgb,var(--text) 6%,var(--card));color:var(--muted);border-color:var(--border)}
+.lnIcon svg{width:17px;height:17px}
+/* ledger rows */
+#ftLedgerBox .lgL{border-radius:16px;background:color-mix(in srgb,var(--text) 3%,var(--card))}
+.ftRowP{display:flex !important;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px !important;font:inherit;color:inherit;background:transparent;border:0;border-top:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ftRowP:active{background:color-mix(in srgb,var(--primary) 8%,transparent)}
+.ftRowP .rpAv{flex:none;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--primary);background:color-mix(in srgb,var(--primary) 14%,var(--card))}
+.ftRowP .rpMid{flex:1;min-width:0;display:block}
+/* settlement popup */
+.lnSetCard{text-align:center}
+.lnSetIc{width:54px;height:54px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--green);background:color-mix(in srgb,var(--green) 14%,var(--card))}
+.lnSetIc svg{width:28px;height:28px}
+.lnSetAmt{font-size:28px;font-weight:800;margin:4px 0 6px}
+/* statement sheet buttons */
+#ftStmt .sBar button{display:inline-flex;align-items:center;gap:6px}
+#ftStmt .sBar button.stl{background:#16a34a;border-color:#16a34a;color:#fff}
+#ftStmt .sBar button.sx{justify-content:center}
+</style>
+<script id="ftLoanId">
+/* Loan ID = one unique identity number per person (LN-XXXXXX). Suggestions in the Person field, a Loan Ledger and a printable statement per person. */
+(function(){
+  var ALPHA='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var bn=function(){ return typeof currentLang!=='undefined'&&currentLang==='bn'; };
+  var T=function(b,e){ return bn()?b:e; };
+  var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+  var key=function(p){ return String(p==null?'':p).trim().toLowerCase(); };
+  var r2=function(n){ return Math.round(n*100)/100; };
+  var LOAN={loan_taken:1,loan_given:1,loan_repay_taken:1,loan_repay_given:1};
+  var isLoan=function(t){ return !!LOAN[t]; };
+  function mixOk(id){ return /[A-Z]/.test(id)&&/[2-9]/.test(id); }
+  function randId(){ var id; do{ var s=''; for(var i=0;i<6;i++) s+=ALPHA.charAt(Math.floor(Math.random()*ALPHA.length)); id='LN-'+s; }while(!mixOk(id)); return id; }
+  function detId(src){ /* stable ID for people that existed before IDs were introduced */
+    var h1=2166136261,h2=5381,str=String(src);
+    for(var i=0;i<str.length;i++){ var c=str.charCodeAt(i); h1^=c; h1=Math.imul(h1,16777619)>>>0; h2=(Math.imul(h2,33)+c)>>>0; }
+    var s='',n=h1^h2; for(var j=0;j<6;j++){ s+=ALPHA.charAt(Math.abs(n)%ALPHA.length); n=Math.imul(n,1103515245)+12345>>>0; n^=(h1>>>j); }
+    if(!/[2-9]/.test(s)) s=s.slice(0,5)+ALPHA.charAt(26+(h1%6));
+    if(!/[A-Z]/.test(s)) s='K'+s.slice(1);
+    return 'LN-'+s;
+  }
+  /* ---- people index (one entry per name, case-insensitive) ---- */
+  var cache=null;
+  function pmap(){
+    if(cache&&cache.arr===data.transactions&&cache.len===data.transactions.length) return cache;
+    var m={}, order=[];
+    data.transactions.filter(function(x){ return isLoan(x.type); })
+      .sort(function(a,b){ return String((a.date||'')+(a.time||'')).localeCompare(String((b.date||'')+(b.time||''))); })
+      .forEach(function(x){
+        var k=key(x.person); if(!k) return;
+        var p=m[k]; if(!p){ p=m[k]={key:k,name:String(x.person).trim(),id:null,tN:0,tA:0,gN:0,gA:0,pbN:0,pbA:0,prN:0,prA:0,last:''}; order.push(k); }
+        if(x.loanId&&!p.id) p.id=x.loanId;
+        p.name=String(x.person).trim()||p.name;
+        var a=+x.amount||0, d=(x.date||'')+(x.time||''); if(d>p.last) p.last=d;
+        if(x.type==='loan_taken'){ p.tN++; p.tA+=a; }
+        else if(x.type==='loan_given'){ p.gN++; p.gA+=a; }
+        else if(x.type==='loan_repay_taken'){ p.pbN++; p.pbA+=a; }
+        else { p.prN++; p.prA+=a; }
+      });
+    var list=order.map(function(k){ var p=m[k]; p.id=p.id||detId(k); p.owe=r2(p.tA-p.pbA); p.get=r2(p.gA-p.prA); p.net=r2(p.get-p.owe); return p; });
+    return cache={arr:data.transactions,len:data.transactions.length,map:m,list:list};
+  }
+  var idTaken=function(id){ return pmap().list.some(function(p){ return p.id===id; }); };
+  var pending=null;
+  function curNew(){ if(!pending||idTaken(pending)) do{ pending=randId(); }while(idTaken(pending)); return pending; }
+  var personVal=function(){ var e=document.getElementById('inPerson'); return e?e.value.trim():''; };
+  function idForName(name){ var p=pmap().map[key(name)]; return p?p.id:curNew(); }
+  window.ftLoanIdFor=function(type){ return isLoan(type)?idForName(personVal()):null; };
+  window.ftLoanGate=function(){ return false; };
+  window.ftPersonId=function(name){ var p=pmap().map[key(name)]; return p?p.id:null; };
+
+  /* ---- statement (all transactions with one person) ---- */
+  function txsOf(k){ return data.transactions.filter(function(x){ return isLoan(x.type)&&key(x.person)===k; })
+    .sort(function(a,b){ return String((a.date||'')+(a.time||'')+a.id).localeCompare(String((b.date||'')+(b.time||'')+b.id)); }); }
+  function netLabel(n){ return n>0.004?T('তিনি আপনাকে দেবেন','They owe you'):n<-0.004?T('আপনি তাকে দেবেন','You owe them'):T('কোনো বাকি নেই','Settled'); }
+  function statementData(p){
+    var run=0, rows=txsOf(p.key).map(function(x){
+      var a=+x.amount||0, d=(x.type==='loan_given'||x.type==='loan_repay_taken')?a:-a; run=r2(run+d);
+      return {x:x,a:a,bal:run,label:t(TYPE_META[x.type].label)};
+    });
+    return rows;
+  }
+  function closeStmt(){ var o=document.getElementById('ftStmt'); if(o) o.remove(); document.body.style.overflow=''; }
+  function stmtText(p,rows){
+    var L=[]; L.push('Finverse - '+T('লোন স্টেটমেন্ট','Loan Statement')); L.push(p.name+'  ['+p.id+']'); L.push(T('তৈরির তারিখ: ','Generated: ')+new Date().toLocaleString()); L.push('');
+    L.push(T('নেওয়া: ','Borrowed: ')+p.tN+' x, '+fmt(p.tA)+' | '+T('দেওয়া: ','Lent: ')+p.gN+' x, '+fmt(p.gA));
+    L.push(T('আপনি ফেরত দিয়েছেন: ','You repaid: ')+fmt(p.pbA)+' | '+T('আপনি ফেরত পেয়েছেন: ','You received back: ')+fmt(p.prA));
+    L.push(netLabel(p.net)+': '+fmt(Math.abs(p.net))); L.push('');
+    rows.forEach(function(r){ L.push((r.x.date||'')+' '+(r.x.time||'')+' | '+r.label+' | '+fmt(r.a)+' | '+(r.bal>=0?'+':'-')+fmt(Math.abs(r.bal))+(r.x.note?' | '+r.x.note:'')); });
+    return L.join('\n');
+  }
+  function printStmt(p,rows){
+    var fN=function(n){ return fmt(Math.abs(n)); }, G='#16a34a', R='#dc2626';
+    var kpi=function(l,v,c){ return '<div class="pd-k"><div class="pd-kl">'+l+'</div><div class="pd-kv" style="color:'+(c||'#1a1c1e')+'">'+v+'</div></div>'; };
+    var html='<h2>'+T('লোন স্টেটমেন্ট','Loan Statement')+'</h2>'
+      +'<div class="pd-per">'+esc(p.name)+' &nbsp;·&nbsp; '+T('লোন আইডি','Loan ID')+': <b>'+esc(p.id)+'</b> &nbsp;·&nbsp; '+rows.length+' '+T('টি লেনদেন','transactions')+'</div>'
+      +'<div class="pd-kpis">'
+        +kpi(T('নিয়েছেন','Borrowed'),fN(p.tA)+' <small style="font-weight:500;color:#6b7280">('+p.tN+'x)</small>')
+        +kpi(T('দিয়েছেন','Lent'),fN(p.gA)+' <small style="font-weight:500;color:#6b7280">('+p.gN+'x)</small>')
+        +kpi(T('ফেরত দিয়েছেন','You repaid'),fN(p.pbA),G)
+        +kpi(T('ফেরত পেয়েছেন','You received back'),fN(p.prA),G)
+      +'</div>'
+      +'<div class="pd-k" style="margin:0 0 3mm;border-top-color:'+(p.net<-0.004?R:G)+'"><div class="pd-kl">'+esc(netLabel(p.net))+'</div><div class="pd-kv" style="color:'+(p.net<-0.004?R:G)+'">'+fN(p.net)+'</div></div>'
+      +'<div class="pd-h">'+T('লেনদেনের তালিকা','Transactions')+'</div>'
+      +'<table class="pd-tbl"><thead><tr><th>'+T('তারিখ','Date')+'</th><th>'+T('ধরন','Type')+'</th><th class="n">'+T('পরিমাণ','Amount')+'</th><th class="n">'+T('ব্যালেন্স','Balance')+'</th></tr></thead><tbody>'
+      + rows.map(function(r){ var x=r.x;
+          return '<tr><td>'+esc(x.date||'')+(x.time?'<div style="font-size:7.5pt;color:#6b7280">'+esc(x.time)+'</div>':'')+'</td><td>'+esc(r.label)+(x.due?'<div style="font-size:7.5pt;color:#6b7280">'+T('ফেরতের তারিখ ','Due ')+esc(x.due)+'</div>':'')+(x.note?'<div style="font-size:7.5pt;color:#6b7280">'+esc(x.note)+'</div>':'')+'</td><td class="n">'+fN(r.a)+'</td><td class="n" style="color:'+(r.bal<-0.004?R:r.bal>0.004?G:'#1a1c1e')+';font-weight:700">'+(r.bal>0.004?'+':r.bal<-0.004?'−':'')+fN(r.bal)+'</td></tr>'; }).join('')
+      +'</tbody></table>'
+      +'<p class="pd-date" style="text-align:left">'+T('ব্যালেন্স: + মানে তিনি আপনাকে দেবেন, − মানে আপনি তাকে দেবেন।','Balance: + means they owe you, − means you owe them.')+'</p>';
+    closeStmt();
+    /* same print pad as Reports: it prints reliably on mobile browsers */
+    setTimeout(function(){ try{ printWithLetterhead(html); }catch(err){ alert(T('প্রিন্ট করা যায়নি','Could not print')); } },80);
+  }
+  function openStmt(name){
+    var p=pmap().map[key(name)]; if(!p) return;
+    closeStmt();
+    var rows=statementData(p), sign=function(n){ return (n>0.004?'<span class="sPos">+':n<-0.004?'<span class="sNg">−':'<span>')+fmt(Math.abs(n))+'</span>'; };
+    var body=rows.map(function(r){ var x=r.x;
+      return '<tr><td>'+esc(x.date||'')+'<small>'+esc(x.time||'')+'</small></td><td>'+esc(r.label)+(x.due?'<small>'+T('ফেরতের তারিখ ','Due ')+esc(x.due)+'</small>':'')+(x.note?'<small>'+esc(x.note)+'</small>':'')+'</td><td class="r">'+fmt(r.a)+'</td><td class="r">'+sign(r.bal)+'</td></tr>'; }).join('');
+    var ov=document.createElement('div'); ov.id='ftStmt';
+    ov.innerHTML='<div class="sSheet" role="dialog">'
+      +'<div class="sBar">'
+        +(Math.abs(p.net)>0.004?'<button type="button" class="stl" data-a="settle"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>'+T('সেটেলমেন্ট','Settle')+'</button>':'')
+        +'<button type="button" class="pri" data-a="print"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>'+T('প্রিন্ট / PDF','Print / PDF')+'</button>'
+        +'<button type="button" data-a="copy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>'+T('টেক্সট কপি','Copy text')+'</button>'
+        +'<button type="button" class="sx" data-a="close" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'
+      +'<h2>Finverse · '+T('লোন স্টেটমেন্ট','Loan Statement')+'</h2><h1>'+esc(p.name)+'</h1>'
+      +'<div class="sMeta">'+T('লোন আইডি','Loan ID')+': <span class="ftLid">'+esc(p.id)+'</span><br>'+T('তৈরির তারিখ','Generated')+': '+esc(new Date().toLocaleString())+'</div>'
+      +'<div class="sGrid">'
+      +'<div class="sC"><small>'+T('তার কাছ থেকে নিয়েছেন','Borrowed from them')+'</small><b>'+fmt(p.tA)+'</b><i>'+p.tN+' '+T('বার','time(s)')+'</i></div>'
+      +'<div class="sC"><small>'+T('তাকে দিয়েছেন','Lent to them')+'</small><b>'+fmt(p.gA)+'</b><i>'+p.gN+' '+T('বার','time(s)')+'</i></div>'
+      +'<div class="sC"><small>'+T('আপনি ফেরত দিয়েছেন','You repaid')+'</small><b>'+fmt(p.pbA)+'</b><i>'+p.pbN+' '+T('বার','time(s)')+'</i></div>'
+      +'<div class="sC"><small>'+T('আপনি ফেরত পেয়েছেন','You received back')+'</small><b>'+fmt(p.prA)+'</b><i>'+p.prN+' '+T('বার','time(s)')+'</i></div>'
+      +'<div class="sC sNet"><small>'+netLabel(p.net)+'</small><b>'+fmt(Math.abs(p.net))+'</b></div></div>'
+      +'<div class="sTbl"><table><thead><tr><th>'+T('তারিখ','Date')+'</th><th>'+T('ধরন','Type')+'</th><th class="r">'+T('পরিমাণ','Amount')+'</th><th class="r">'+T('ব্যালেন্স','Balance')+'</th></tr></thead><tbody>'+body+'</tbody></table></div>'
+      +'<div class="sFoot">'+T('ব্যালেন্স: + মানে তিনি আপনাকে দেবেন, − মানে আপনি তাকে দেবেন।','Balance: + means they owe you, − means you owe them.')+'</div></div>';
+    document.body.appendChild(ov); document.body.style.overflow='hidden';
+    ov.addEventListener('click',function(e){
+      if(e.target===ov){ closeStmt(); return; }
+      var b=e.target.closest('button[data-a]'); if(!b) return; var a=b.getAttribute('data-a');
+      if(a==='close') closeStmt();
+      else if(a==='print'){ printStmt(p,rows); }else if(a==='settle'){ closeStmt(); if(p.net>0.004) ftSettle('get',encodeURIComponent(p.name)); else if(p.net<-0.004) ftSettle('owe',encodeURIComponent(p.name)); }else if(a==='copy'){
+        var txt=stmtText(p,rows), keep=b.innerHTML, ok=function(){ b.textContent=T('কপি হয়েছে','Copied'); setTimeout(function(){ b.innerHTML=keep; },1400); };
+        try{ navigator.clipboard.writeText(txt).then(ok,function(){}); }catch(err){ var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); ok(); }catch(e2){} ta.remove(); }
+      }
+    });
+  }
+  window.ftOpenStatement=openStmt;
+  window.ftRefreshStmt=function(){};
+
+  /* ---- person field: chip + suggestions ---- */
+  var wrap=document.getElementById('personWrap'), inp=document.getElementById('inPerson');
+  if(!wrap||!inp) return;
+  var chip=document.createElement('div'); chip.id='ftLoanChip'; wrap.appendChild(chip);
+  var sug=document.createElement('div'); sug.id='ftLoanSug'; wrap.appendChild(sug);
+  inp.setAttribute('autocomplete','off'); inp.removeAttribute('list');
+  var relOwe=function(type){ return type==='loan_taken'||type==='loan_repay_taken'; };
+  function relText(p){
+    if(p.net>0.004) return '<span class="ftPos">'+fmt(p.net)+'</span><small>'+T('পাবেন','To receive')+'</small>';
+    if(p.net<-0.004) return '<span class="ftNeg">'+fmt(-p.net)+'</span><small>'+T('দিতে হবে','To pay')+'</small>';
+    return '<small>'+T('বাকি নেই','Settled')+'</small>';
+  }
+  function syncChip(){
+    var name=personVal(), type=currentType; if(!isLoan(type)||!name){ chip.className=''; chip.innerHTML=''; return; }
+    var p=pmap().map[key(name)];
+    chip.innerHTML=T('লোন আইডি','Loan ID')+' <span class="ftLid">'+esc(p?p.id:curNew())+'</span> '
+      +(p?'<span>'+T('বিদ্যমান ব্যক্তি','Existing person')+' · '+netLabel(p.net)+(Math.abs(p.net)>0.004?' '+fmt(Math.abs(p.net)):'')+'</span><button type="button" class="ftLid" data-a="stmt">'+T('স্টেটমেন্ট','Statement')+'</button>'
+        :'<span>'+T('নতুন ব্যক্তি, স্বয়ংক্রিয় আইডি','New person, auto-generated ID')+'</span>');
+    chip.className='on';
+  }
+  chip.addEventListener('click',function(e){ var b=e.target.closest('button[data-a="stmt"]'); if(b) openStmt(personVal()); });
+  function rowHtml(p,extra){
+    var ini=esc(String(p.name).trim().charAt(0).toUpperCase()||'?');
+    return '<button type="button" class="ftRowP" data-n="'+esc(p.name)+'"><span class="rpAv">'+ini+'</span><span class="rpMid"><span class="pN">'+esc(p.name)+'</span><span class="pS"><span class="ftLid">'+esc(p.id)+'</span> '+T('নিয়েছেন ','Borrowed ')+p.tN+'x · '+T('দিয়েছেন ','Lent ')+p.gN+'x</span></span><span class="pA">'+relText(p)+'</span></button>';
+  }
+  function showSug(){
+    var type=currentType; if(!isLoan(type)){ sug.className=''; return; }
+    var q=inp.value.trim().toLowerCase(), owe=relOwe(type);
+    var list=pmap().list.filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>-1||p.id.toLowerCase().indexOf(q)>-1; });
+    if(q&&list.length===1&&key(list[0].name)===key(inp.value)){ sug.className=''; return; }
+    list.sort(function(a,b){ var ra=(owe?a.net<-0.004:a.net>0.004)?1:0, rb=(owe?b.net<-0.004:b.net>0.004)?1:0; return (rb-ra)||String(b.last).localeCompare(String(a.last)); });
+    if(!list.length){ sug.className=''; return; }
+    sug.innerHTML='<div class="lsH">'+T('পরিচিত ব্যক্তি (লোন আইডি সহ)','Known people (with Loan ID)')+'</div>'+list.slice(0,30).map(rowHtml).join('');
+    sug.className='on';
+  }
+  var hideSug=function(){ sug.className=''; };
+  function pickRow(e){
+    var b=e.target.closest&&e.target.closest('.ftRowP'); if(!b) return; e.preventDefault();
+    inp.value=b.getAttribute('data-n'); hideSug(); syncChip(); inp.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  sug.addEventListener('mousedown',pickRow); sug.addEventListener('touchstart',pickRow,{passive:false});
+  inp.addEventListener('focus',showSug);
+  inp.addEventListener('input',function(){ showSug(); syncChip(); });
+  inp.addEventListener('blur',function(){ setTimeout(hideSug,160); });
+  var sig='';
+  setInterval(function(){ try{
+    var s=currentType+'|'+personVal()+'|'+(pending||'')+'|'+data.transactions.length;
+    if(s!==sig){ sig=s; syncChip(); if(document.activeElement!==inp) hideSug(); }
+  }catch(e){} },300);
+
+  /* ---- keep every loan entry stamped with its person's ID (also entries from requests / quick send / chat) ---- */
+  var _sd=window.saveData;
+  if(typeof _sd==='function') window.saveData=function(){
+    try{ cache=null; var pm=pmap().map; data.transactions.forEach(function(x){ if(isLoan(x.type)){ var p=pm[key(x.person)]; if(p) x.loanId=p.id; } }); cache=null; }catch(e){}
+    return _sd.apply(this,arguments);
+  };
+
+  /* ---- Loans tab: ledger box + ID under each name ---- */
+  var ledger=null;
+  function ensureLedger(){
+    if(ledger&&document.body.contains(ledger)) return;
+    var g=document.getElementById('getList'); var host=g&&g.closest('.box'); if(!host) return;
+    ledger=document.createElement('div'); ledger.className='box'; ledger.id='ftLedgerBox';
+    ledger.innerHTML='<h3>'+T('লোন লেজার','Loan Ledger')+'</h3><input type="search" class="lgS" id="ftLgQ" autocomplete="off" placeholder="'+T('নাম বা লোন আইডি দিয়ে খুঁজুন','Search by name or Loan ID')+'"><div class="lgL" id="ftLgL"></div>';
+    host.parentNode.insertBefore(ledger,host);
+    ledger.querySelector('#ftLgQ').addEventListener('input',drawLedger);
+    ledger.querySelector('#ftLgL').addEventListener('click',function(e){ var b=e.target.closest('.ftRowP'); if(b) openStmt(b.getAttribute('data-n')); });
+  }
+  function drawLedger(){
+    if(!ledger) return; var q=(ledger.querySelector('#ftLgQ').value||'').trim().toLowerCase();
+    var list=pmap().list.filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>-1||p.id.toLowerCase().indexOf(q)>-1; })
+      .sort(function(a,b){ return String(b.last).localeCompare(String(a.last)); });
+    ledger.querySelector('#ftLgL').innerHTML=list.length?list.map(rowHtml).join(''):'<div class="lgE">'+T('কোনো লেনদেন নেই','No loan records yet')+'</div>';
+  }
+  function decorate(){
+    ensureLedger(); drawLedger();
+    ['getList','oweList'].forEach(function(id){
+      var box=document.getElementById(id); if(!box) return;
+      box.querySelectorAll('.person').forEach(function(row){
+        var nameEl=row.firstElementChild; if(!nameEl||nameEl.querySelector('.ftLids')) return;
+        var p=pmap().map[key(nameEl.textContent)]; if(!p) return;
+        nameEl.insertAdjacentHTML('beforeend','<div class="ftLids"><button type="button" class="ftLid" data-ledger="'+esc(p.name)+'">'+esc(p.id)+' · '+T('স্টেটমেন্ট','Statement')+'</button></div>');
+      });
+    });
+  }
+  document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('button[data-ledger]'); if(b){ e.preventDefault(); e.stopPropagation(); openStmt(b.getAttribute('data-ledger')); } },true);
+  var _rl=window.renderLoans; if(typeof _rl==='function') window.renderLoans=function(){ var r=_rl.apply(this,arguments); try{ decorate(); }catch(e){} return r; };
+  try{ decorate(); }catch(e){}
+
+  /* ---- History rows: show the person's Loan ID ---- */
+  var _th=window.txHtml; if(typeof _th==='function') window.txHtml=function(tx){
+    var h=_th(tx);
+    try{ if(tx&&isLoan(tx.type)){ var p=pmap().map[key(tx.person)]; if(p) h=h.replace(/(<div class="t2">[\s\S]*?)(<\/div>)/,'$1 <span class="ftLid">'+esc(p.id)+'</span>$2'); } }catch(e){}
+    return h;
+  };
+  syncChip();
+})();
+</script>
+
+<style id="qxCss">
+.bnbtn.fab{touch-action:none;-webkit-user-select:none;user-select:none}
+#qxBack{position:fixed;inset:0;z-index:9950;background:rgba(8,10,16,.28);opacity:0;pointer-events:none;transition:opacity .2s}
+#qxBack.on{opacity:1;pointer-events:auto}
+#qxTray{position:fixed;left:50%;z-index:9960;max-width:min(94vw,470px);transform:translate(-50%,18px) scale(.96);opacity:0;pointer-events:none;transition:transform .25s cubic-bezier(.2,.9,.3,1.2),opacity .18s;transform-origin:50% 100%}
+#qxTray.on{transform:translate(-50%,0) scale(1);opacity:1;pointer-events:auto}
+#qxTray .qxCard{background:color-mix(in srgb,var(--card) 94%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--border);border-radius:24px;box-shadow:0 18px 44px rgba(0,0,0,.34);padding:12px 12px 10px}
+#qxTray .qxHd{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;letter-spacing:.3px;color:var(--muted);padding:0 4px 10px;text-transform:uppercase}
+#qxTray .qxHd svg{width:15px;height:15px;color:var(--primary)}
+#qxTray .qxRow{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#qxTray .qxRow::-webkit-scrollbar{display:none}
+.qxI{flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:5px;background:none;border:0;padding:0;font:inherit;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:0;transform:translateY(14px) scale(.8)}
+#qxTray.on .qxI{animation:qxPop .32s cubic-bezier(.2,.9,.3,1.3) forwards;animation-delay:calc(var(--i,0)*45ms + 40ms)}
+@keyframes qxPop{to{opacity:1;transform:none}}
+.qxI .qxC{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(145deg,var(--qc,var(--primary)),color-mix(in srgb,var(--qc,var(--primary)) 62%,#000));box-shadow:0 8px 16px color-mix(in srgb,var(--qc,var(--primary)) 40%,transparent);transition:transform .12s}
+.qxI:active .qxC{transform:scale(.9)}
+.qxI .qxC svg{width:24px;height:24px}
+.qxI .qxN{font-size:11px;font-weight:700;max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qxI .qxA{font-size:10.5px;font-weight:800;color:var(--muted);margin-top:-3px}
+.qxI.qxMore .qxC{background:transparent;color:var(--muted);border:1.8px dashed var(--border);box-shadow:none}
+.qxEmpty{padding:6px 6px 8px;font-size:12.5px;color:var(--muted);line-height:1.5;max-width:230px}
+
+/* + button morphs into a red bolt while Quick actions are open */
+.bnbtn.fab .fabcircle{position:relative;transition:background .28s,box-shadow .28s,transform .28s cubic-bezier(.2,.9,.3,1.3)}
+.bnbtn.fab .fabcircle>svg{transition:transform .32s cubic-bezier(.2,.9,.3,1.2),opacity .2s}
+.bnbtn.fab .fabcircle>svg.qxBolt{position:absolute;left:50%;top:50%;width:25px;height:25px;margin:-12.5px 0 0 -12.5px;fill:#fff;stroke:#fff;stroke-width:1.6;opacity:0;transform:scale(.3) rotate(-70deg);pointer-events:none}
+.bnbtn.fab.qxOn .fabcircle{background:linear-gradient(145deg,#ff5a5f,#e11d2e) !important;box-shadow:0 0 0 7px rgba(239,68,68,.20),0 10px 24px rgba(225,29,46,.55) !important;animation:qxGlow 1.4s ease-in-out infinite;transform:translateY(-2px) scale(1.06)}
+.bnbtn.fab.qxOn .fabcircle>svg:not(.qxBolt){opacity:0;transform:rotate(135deg) scale(.2)}
+.bnbtn.fab.qxOn .fabcircle>svg.qxBolt{opacity:1;transform:scale(1) rotate(0);animation:qxZap .55s ease-out}
+.bnbtn.fab .fabcircle::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(239,68,68,.75);opacity:0;pointer-events:none}
+.bnbtn.fab.qxOn .fabcircle::after{animation:qxRing .7s ease-out}
+.bnbtn.fab.qxDrag .fabcircle{transition:none}
+@keyframes qxGlow{0%,100%{box-shadow:0 0 0 7px rgba(239,68,68,.20),0 10px 24px rgba(225,29,46,.55)}50%{box-shadow:0 0 0 12px rgba(239,68,68,.10),0 12px 30px rgba(225,29,46,.7)}}
+@keyframes qxRing{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.6)}}
+@keyframes qxZap{0%{transform:scale(.3) rotate(-70deg)}60%{transform:scale(1.25) rotate(6deg)}100%{transform:scale(1) rotate(0)}}
+/* options fly out of the button */
+#qxTray .qxI{transform:translateY(46px) scale(.3)}
+#qxTray.on .qxI{animation:qxFly .45s cubic-bezier(.2,1.1,.3,1.25) forwards;animation-delay:calc(var(--i,0)*60ms + 60ms)}
+@keyframes qxFly{0%{opacity:0;transform:translateY(46px) scale(.3)}70%{opacity:1;transform:translateY(-5px) scale(1.07)}100%{opacity:1;transform:none}}
+#qxTray .qxCard{position:relative}
+#qxTray .qxCard::after{content:"";position:absolute;left:50%;bottom:-6px;width:14px;height:14px;margin-left:-7px;background:inherit;border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:rotate(45deg);border-radius:0 0 4px 0;display:none}
+/* settings box */
+#qxBox .qxHint{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0 0 12px}
+#qxBox .qxList{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+#qxBox .qxIt{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1.5px solid var(--border);border-radius:16px;background:color-mix(in srgb,var(--text) 3%,var(--card))}
+#qxBox .qxIt .qxC{flex:none;width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(145deg,var(--qc,var(--primary)),color-mix(in srgb,var(--qc,var(--primary)) 62%,#000))}
+#qxBox .qxIt .qxC svg{width:20px;height:20px}
+#qxBox .qxIt .qxT{flex:1;min-width:0;cursor:pointer}
+#qxBox .qxIt .qxT b{display:block;font-size:14px;word-break:break-word}
+#qxBox .qxIt .qxT small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+#qxBox .qxIt .qxP{font-weight:800;font-size:14px;white-space:nowrap}
+#qxBox .qxIt .qxX{flex:none;width:34px;height:34px;border-radius:11px;border:1.5px solid var(--border);background:transparent;color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+#qxBox .qxIt .qxX svg{width:16px;height:16px}
+#qxBox .qxForm{border:1.5px dashed var(--border);border-radius:18px;padding:12px}
+#qxBox .qxForm label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin:8px 2px 4px}
+#qxBox .qxForm label:first-child{margin-top:0}
+#qxBox .qxForm input,#qxBox .qxForm select{width:100%}
+#qxBox .qxBtns{display:flex;gap:8px;margin-top:12px}
+#qxBox .qxBtns .main{flex:1;margin-top:0;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+#qxBox .qxBtns .main svg{width:17px;height:17px}
+#qxBox .qxBtns .typebtn{flex:none;padding:0 16px}
+#qxBox .qxEmpty2{text-align:center;color:var(--muted);font-size:13px;padding:14px 8px}
+</style>
+<div id="qxBack"></div>
+<div id="qxTray" role="dialog" aria-label="Quick action"></div>
+<script id="qxJs">
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var B=function(){return typeof currentLang!=='undefined'&&currentLang==='bn'};
+  var L=function(b,e){return B()?b:e};
+  var bl=function(b,e){return '<span class="bn">'+b+'</span><span class="en">'+e+'</span>'};
+  var E=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+  var BOLT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>';
+  var COG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>';
+  var TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+  var PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  var CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
+  var COLS=['#f59e0b','#ef4444','#8b5cf6','#06b6d4','#10b981','#ec4899','#3b82f6','#f97316'];
+  var CASH='__cash__';
+  function colFor(n){var h=0;n=String(n||'');for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))>>>0;return COLS[h%COLS.length]}
+  function QA(){if(!data.quickActions||!Array.isArray(data.quickActions))data.quickActions=[];return data.quickActions}
+  function money(v){try{return (ftCurSym()+' ')+(+v).toLocaleString(ftCurLocale(),{maximumFractionDigits:2})}catch(e){return '৳'+v}}
+  function toast(m){try{if(window.toast)window.toast(m);else alert(m)}catch(e){}}
+  function num(v){return parseFloat(String(v==null?'':v).replace(/[০-৯]/g,function(d){return '০১২৩৪৫৬৭৮৯'.indexOf(d)}).replace(/,/g,''))}
+
+  /* ---------- run one quick action: uses the app's own form + saveTx(), so every rule still applies ---------- */
+  var saving=false, fundFor=null, _ff=window.ftFundFor;
+  if(typeof _ff==='function') window.ftFundFor=function(type){
+    if(saving&&type==='expense'&&fundFor!=='__default__') return fundFor;
+    return _ff.apply(this,arguments);
+  };
+  function run(q){
+    if(!q||saving) return;
+    var amt=+q.amount; if(!(amt>0)) return;
+    if((data.categories||[]).indexOf(q.cat)<0){ toast(L('এই খাতটি আর নেই — Quick action এডিট করুন','This category no longer exists — edit the Quick action')); return; }
+    var base=data.transactions.length, realAlert=window.alert, prevType=(typeof currentType!=='undefined')?currentType:null;
+    saving=true;
+    fundFor = !q.wallet ? '__default__' : (q.wallet===CASH ? null : ((data.accounts||[]).indexOf(q.wallet)>-1 ? q.wallet : '__default__'));
+    window.alert=function(m){ try{ if(String(m)===String(t('alert_saved'))) return; }catch(e){} return realAlert.apply(window,arguments); };
+    try{
+      window.__ftMerged=0; editingTxId=null; currentType='expense';
+      refreshCategorySelect(); $('inCategory').value=q.cat;
+      $('inAmount').value=amt; $('inNote').value=q.name||'';
+      $('inDate').value=todayStr(); $('inTime').value=nowTime();
+      saveTx();
+    }catch(err){ console.error('quick action failed',err); toast(L('সেভ করা যায়নি','Could not save')); }
+    saving=false; fundFor=null;
+    setTimeout(function(){ window.alert=realAlert; },1500);
+    if(prevType!==null){ try{ currentType=prevType; }catch(e){} }
+    if(data.transactions.length>base||window.__ftMerged){
+      try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+      toast('⚡ '+(q.name||q.cat)+' · '+money(amt)+' '+L('যোগ হয়েছে','added'));
+    }
+  }
+
+  /* ---------- tray above the + button ---------- */
+  var tray=$('qxTray'), back=$('qxBack'), isOpen=false;
+  var fabBtn=document.querySelector('.bnbtn.fab'), fabC=fabBtn&&fabBtn.querySelector('.fabcircle');
+  if(fabC&&!fabC.querySelector('.qxBolt')) fabC.insertAdjacentHTML('beforeend','<svg class="qxBolt" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>');
+  function fabOn(v){ if(fabBtn) fabBtn.classList.toggle('qxOn',!!v); }
+  function openSettings(){
+    close();
+    try{ var b=document.querySelector('.bnbtn[data-bn="settings"]'); if(b) b.click(); }catch(e){}
+    setTimeout(function(){ var bx=$('qxBox'); if(bx) bx.open=true; try{ if(typeof ftSetOpen==='function') ftSetOpen('qxBox'); }catch(e){} },300);
+  }
+  function build(){
+    var list=QA(), h='<div class="qxCard"><div class="qxHd">'+BOLT+'<span>'+L('Quick action','Quick action')+'</span></div><div class="qxRow">';
+    if(!list.length) h+='<div class="qxEmpty">'+L('এখনো কোনো Quick action নেই। Settings থেকে নাম, খাত ও টাকা ঠিক করে রাখলে এক ট্যাপেই খরচ যোগ হবে।','No Quick actions yet. Set a name, category and amount in Settings and one tap will add the expense.')+'</div>';
+    list.forEach(function(q,i){
+      h+='<button type="button" class="qxI" data-id="'+E(q.id)+'" style="--i:'+i+';--qc:'+colFor(q.cat||q.name)+'"><span class="qxC">'+BOLT+'</span><span class="qxN">'+E(q.name||q.cat)+'</span><span class="qxA">'+E(money(q.amount))+'</span></button>';
+    });
+    h+='<button type="button" class="qxI qxMore" data-more="1" style="--i:'+list.length+'"><span class="qxC">'+(list.length?COG:PLUS)+'</span><span class="qxN">'+(list.length?L('ঠিক করুন','Manage'):L('যোগ করুন','Add'))+'</span></button>';
+    tray.innerHTML=h+'</div></div>';
+  }
+  function open(){
+    if(isOpen) return; isOpen=true; build();
+    var f=document.querySelector('.bnbtn.fab .fabcircle')||document.querySelector('.bnbtn.fab');
+    var r=f.getBoundingClientRect();
+    tray.style.bottom=Math.max(80,(window.innerHeight-r.top)+14)+'px';
+    back.classList.add('on'); fabOn(true);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ tray.classList.add('on'); }); });
+    try{ if(navigator.vibrate) navigator.vibrate(8); }catch(e){}
+  }
+  function close(){ if(!isOpen) return; isOpen=false; tray.classList.remove('on'); back.classList.remove('on'); fabOn(false); }
+  back.addEventListener('click',close);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') close(); });
+  tray.addEventListener('click',function(e){
+    var b=e.target.closest('.qxI'); if(!b) return;
+    if(b.dataset.more){ openSettings(); return; }
+    var q=QA().filter(function(x){return x.id===b.dataset.id})[0]; close(); if(q) setTimeout(function(){ run(q); },120);
+  });
+
+  /* swipe up on the + button (touch or mouse) */
+  var sy=0,sx=0,down=false,fired=false,sup=0;
+  function fab(e){ return e.target.closest&&e.target.closest('.bnbtn[data-bn="add"]'); }
+  document.addEventListener('pointerdown',function(e){
+    if(!fab(e)||(e.pointerType==='mouse'&&e.button!==0)) return;
+    var n=$('sec-notes'); if(n&&n.classList.contains('active')) return;
+    down=true; fired=false; sy=e.clientY; sx=e.clientX;
+    try{ fab(e).setPointerCapture(e.pointerId); }catch(x){}
+  },true);
+  document.addEventListener('pointermove',function(e){
+    if(!down||fired) return;
+    var dy=e.clientY-sy, dx=e.clientX-sx;
+    if(fabBtn&&dy<0&&Math.abs(dx)<Math.abs(dy)+12){ fabBtn.classList.add('qxDrag'); fabC.style.transform='translateY('+Math.max(dy*.6,-16)+'px) scale('+(1+Math.min(-dy/160,.12))+')'; }
+    if(dy<-26&&Math.abs(dx)<Math.abs(dy)){ fired=true; sup=Date.now(); if(fabC){ fabBtn.classList.remove('qxDrag'); fabC.style.transform=''; } open(); }
+  },true);
+  function end(){ if(down&&fired) sup=Date.now(); down=false; if(fabBtn&&fabC){ fabBtn.classList.remove('qxDrag'); fabC.style.transform=''; } }
+  document.addEventListener('pointerup',end,true);
+  document.addEventListener('pointercancel',end,true);
+  /* a swipe must not also count as a tap on + (window capture runs before the app's own handler) */
+  window.addEventListener('click',function(e){
+    if(fab(e)&&Date.now()-sup<600){ e.stopImmediatePropagation(); e.preventDefault(); }
+    else if(isOpen&&fab(e)){ close(); }
+  },true);
+
+  /* ---------- Settings → Quick action box ---------- */
+  var box=document.createElement('details'); box.className='box setBox'; box.id='qxBox';
+  box.innerHTML='<summary><span class="setIco" style="--c:#f59e0b">'+BOLT+'</span><h3>'+bl('Quick action','Quick action')+'</h3><svg viewBox="0 0 24 24" class="setChev"><path d="m9 6 6 6-6 6"/></svg></summary><div class="setBody"></div>';
+  var bd=box.querySelector('.setBody'), editing=null;
+  bd.innerHTML='<p class="qxHint">'+bl('নাম, খাত ও টাকা আগে থেকে ঠিক করে রাখুন। নিচের বার-এর "+" বাটন উপরে সোয়াইপ করলে বিদ্যুতের (বোল্ট) আইকনগুলো আসবে, এক ট্যাপেই খরচ যোগ হয়ে যাবে।','Set the name, category and amount in advance. Swipe the "+" button in the bottom bar upward to see the bolt icons, and one tap adds the expense.')+'</p>'
+    +'<div class="qxList" id="qxList"></div>'
+    +'<div class="qxForm"><label>'+bl('নাম','Name')+'</label><input id="qxName" maxlength="28" autocomplete="off" placeholder="'+L('যেমন: চা, রিকশা ভাড়া','e.g. Tea, Rickshaw')+'">'
+    +'<label>'+bl('খাত','Category')+'</label><select id="qxCat"></select>'
+    +'<label>'+bl('টাকা','Amount')+'</label><input id="qxAmt" type="text" inputmode="decimal" autocomplete="off" placeholder="0">'
+    +'<label>'+bl('কোথা থেকে খরচ','Pay from')+'</label><select id="qxWal"></select>'
+    +'<div class="qxBtns"><button type="button" class="typebtn" id="qxCancel" style="display:none">'+L('বাতিল','Cancel')+'</button><button type="button" class="main" id="qxSave">'+PLUS+'<span>'+L('Quick action যোগ করুন','Add Quick action')+'</span></button></div></div>';
+  var anchor=$('payBox')||$('rmBox')||$('prefPlusBox');
+  if(anchor) anchor.after(box); else { var sec=$('sec-settings'); if(sec) sec.appendChild(box); }
+  function fillSelects(){
+    var c=$('qxCat'), w=$('qxWal'), cv=c.value, wv=w.value;
+    c.innerHTML=(data.categories||[]).map(function(x){return '<option value="'+E(x)+'">'+E(x)+'</option>'}).join('');
+    w.innerHTML='<option value="">'+L('ডিফল্ট (অ্যাপের বর্তমান সেটিং)','Default (current app setting)')+'</option><option value="'+CASH+'">'+L('ক্যাশ','Cash')+'</option>'+(data.accounts||[]).map(function(x){return '<option value="'+E(x)+'">'+E(x)+'</option>'}).join('');
+    if(cv) c.value=cv; if(wv) w.value=wv;
+  }
+  function paint(){
+    fillSelects();
+    var l=QA(), el=$('qxList');
+    el.innerHTML=l.length?l.map(function(q){
+      var wn=!q.wallet?'':(q.wallet===CASH?L('ক্যাশ','Cash'):q.wallet);
+      return '<div class="qxIt" data-id="'+E(q.id)+'" style="--qc:'+colFor(q.cat||q.name)+'"><span class="qxC">'+BOLT+'</span><div class="qxT" data-a="edit"><b>'+E(q.name||q.cat)+'</b><small>'+E(q.cat)+(wn?' · '+E(wn):'')+'</small></div><span class="qxP">'+E(money(q.amount))+'</span><button type="button" class="qxX" data-a="del" aria-label="Delete">'+TRASH+'</button></div>';
+    }).join(''):'<div class="qxEmpty2">'+L('এখনো কোনো Quick action নেই','No Quick actions yet')+'</div>';
+  }
+  function resetForm(){
+    editing=null; $('qxName').value=''; $('qxAmt').value=''; $('qxWal').value=''; $('qxCancel').style.display='none';
+    $('qxSave').querySelector('span').textContent=L('Quick action যোগ করুন','Add Quick action');
+  }
+  $('qxSave').onclick=function(){
+    var name=$('qxName').value.trim(), cat=$('qxCat').value, amt=num($('qxAmt').value), wal=$('qxWal').value;
+    if(!cat){ toast(L('আগে একটি খাত বাছুন','Pick a category first')); return; }
+    if(!(amt>0)||!isFinite(amt)){ toast(L('সঠিক টাকার পরিমাণ দিন','Enter a valid amount')); return; }
+    if(!name) name=cat;
+    var l=QA();
+    if(editing){ var q=l.filter(function(x){return x.id===editing})[0]; if(q){ q.name=name; q.cat=cat; q.amount=amt; q.wallet=wal; } }
+    else{
+      if(l.length>=12){ toast(L('সর্বোচ্চ ১২টি Quick action রাখা যায়','Up to 12 Quick actions allowed')); return; }
+      l.push({id:'qx'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:name,cat:cat,amount:amt,wallet:wal});
+    }
+    saveData(); resetForm(); paint(); toast(L('Quick action সেভ হয়েছে','Quick action saved'));
+  };
+  $('qxCancel').onclick=resetForm;
+  $('qxList').addEventListener('click',function(e){
+    var b=e.target.closest('[data-a]'); if(!b) return; var row=b.closest('.qxIt'), id=row&&row.dataset.id;
+    var q=QA().filter(function(x){return x.id===id})[0]; if(!q) return;
+    if(b.dataset.a==='edit'){
+      editing=id; $('qxName').value=q.name||''; $('qxCat').value=q.cat; $('qxAmt').value=q.amount; $('qxWal').value=q.wallet||'';
+      $('qxCancel').style.display=''; $('qxSave').querySelector('span').textContent=L('আপডেট করুন','Update');
+      $('qxName').focus();
+    }else if(b.dataset.a==='del'){
+      var go=function(){ data.quickActions=QA().filter(function(x){return x.id!==id}); saveData(); if(editing===id) resetForm(); paint(); };
+      if(typeof appDialog==='function') appDialog(L('এই Quick action মুছে ফেলা হবে','This Quick action will be deleted')+'\n\n'+(q.name||q.cat),{confirm:true,yes:'OK'},go); else if(confirm(q.name||q.cat)) go();
+    }
+  });
+  paint();
+  var _uh=window.updateHome; if(typeof _uh==='function') window.updateHome=function(){ var r=_uh.apply(this,arguments); try{ if(!editing) paint(); }catch(e){} return r; };
+  box.addEventListener('toggle',function(){ if(box.open&&!editing) paint(); });
+  window.qxRun=function(id){ var q=QA().filter(function(x){return x.id===id})[0]; run(q); };
 })();
 </script>
 
